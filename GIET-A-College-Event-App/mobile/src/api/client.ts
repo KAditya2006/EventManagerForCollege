@@ -45,7 +45,7 @@ export const BASE_URL = getBaseUrl();
 
 export const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 15000,
+  timeout: 45000, // 45 seconds to accommodate cloud host cold starts
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',

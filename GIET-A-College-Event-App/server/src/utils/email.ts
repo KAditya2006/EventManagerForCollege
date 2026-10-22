@@ -109,18 +109,21 @@ const buildOtpHtml = (otp: string, hasLogoAttachment: boolean): string => {
 
 export const sendOTP = async (email: string, otp: string) => {
   const isProd = process.env.NODE_ENV === 'production';
-  const isSmtpConfigured = !!(process.env.SMTP_HOST && process.env.SMTP_USER);
+  const isSmtpConfigured = !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
 
-  if (isProd || isSmtpConfigured) {
+  if (isSmtpConfigured) {
     try {
       const transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
         port: Number(process.env.SMTP_PORT) || 587,
-        secure: false, // TLS
+        secure: Number(process.env.SMTP_PORT) === 465, // true for 465, false for 587/TLS
         auth: {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS,
         },
+        connectionTimeout: 10000, // 10s connection timeout
+        greetingTimeout: 10000,
+        socketTimeout: 15000,
       });
 
       // Locate official GIET logo asset
@@ -157,10 +160,14 @@ export const sendOTP = async (email: string, otp: string) => {
       throw new Error('Failed to send OTP email');
     }
   } else {
-    // Development fallback (Mock Provider)
-    console.log('\n=============================================');
-    console.log(`[EmailService - MOCK] Sending OTP to: ${email}`);
-    console.log(`[EmailService - MOCK] OTP Code: ${otp}`);
-    console.log('=============================================\n');
+    if (isProd) {
+      console.warn(`[EmailService Warning] Production SMTP credentials missing in environment variables. Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS on Render dashboard. Logging OTP for [${email}]: ${otp}`);
+    } else {
+      // Development fallback (Mock Provider)
+      console.log('\n=============================================');
+      console.log(`[EmailService - MOCK] Sending OTP to: ${email}`);
+      console.log(`[EmailService - MOCK] OTP Code: ${otp}`);
+      console.log('=============================================\n');
+    }
   }
 };

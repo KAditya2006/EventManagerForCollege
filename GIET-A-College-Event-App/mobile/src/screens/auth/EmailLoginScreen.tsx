@@ -57,9 +57,9 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
       let msg = error.response?.data?.error?.message;
       if (!msg) {
         if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-          msg = 'Connection timed out. Please verify your phone and computer are on the same Wi-Fi.';
+          msg = 'Connection timed out. The cloud server may be waking up (Render free tier). Please wait 20-30 seconds and try again.';
         } else if (error.message?.includes('Network Error') || !error.response) {
-          msg = 'Cannot reach backend server. Please verify your server is running and Wi-Fi matches.';
+          msg = 'Cannot reach backend server. Please verify your internet connection or wait a moment for the cloud server to wake up.';
         } else {
           msg = 'Failed to request OTP. Please try again.';
         }
