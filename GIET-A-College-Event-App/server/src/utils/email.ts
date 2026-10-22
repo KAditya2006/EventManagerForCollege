@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer';
 import path from 'path';
 import fs from 'fs';
+import dns from 'dns';
 
 /**
  * Builds a professional institutional HTML email for GIET(A) OTP verification.
@@ -113,20 +114,35 @@ export const sendOTP = async (email: string, otp: string) => {
 
   if (isSmtpConfigured) {
     try {
+      let smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+      const tlsServername = smtpHost;
+
+      // Directly resolve to IPv4 address to bypass missing IPv6 network routes on Render containers
+      try {
+        const ipv4Addresses = await dns.promises.resolve4(smtpHost);
+        if (ipv4Addresses && ipv4Addresses.length > 0) {
+          smtpHost = ipv4Addresses[0];
+          console.log(`[EmailService] Resolved SMTP host ${tlsServername} to IPv4: ${smtpHost}`);
+        }
+      } catch (dnsErr) {
+        console.warn('[EmailService] IPv4 direct DNS resolution warning:', dnsErr);
+      }
+
       const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
+        host: smtpHost,
         port: Number(process.env.SMTP_PORT) || 587,
         secure: Number(process.env.SMTP_PORT) === 465, // true for 465, false for 587/TLS
         auth: {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS,
         },
-        // Enforce IPv4 socket to prevent ENETUNREACH on Render Linux cloud containers
-        family: 4,
+        tls: {
+          servername: tlsServername, // Ensures TLS certificate validation passes for smtp.gmail.com
+        },
         connectionTimeout: 10000, // 10s connection timeout
         greetingTimeout: 10000,
         socketTimeout: 15000,
-      } as any);
+      });
 
       // Locate official GIET logo asset
       const logoPaths = [
