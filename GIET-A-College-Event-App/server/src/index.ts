@@ -1,3 +1,4 @@
+import dns from 'dns';
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
@@ -5,6 +6,11 @@ import dotenv from 'dotenv';
 import helmet from 'helmet';
 import mongoSanitize from 'express-mongo-sanitize';
 import rateLimit from 'express-rate-limit';
+
+// Prioritize IPv4 DNS resolution to prevent ENETUNREACH on Render Linux containers
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder('ipv4first');
+}
 
 dotenv.config();
 

@@ -121,10 +121,12 @@ export const sendOTP = async (email: string, otp: string) => {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS,
         },
+        // Enforce IPv4 socket to prevent ENETUNREACH on Render Linux cloud containers
+        family: 4,
         connectionTimeout: 10000, // 10s connection timeout
         greetingTimeout: 10000,
         socketTimeout: 15000,
-      });
+      } as any);
 
       // Locate official GIET logo asset
       const logoPaths = [
