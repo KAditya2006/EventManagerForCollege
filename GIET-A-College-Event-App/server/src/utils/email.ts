@@ -110,6 +110,103 @@ const buildOtpHtml = (otp: string, hasLogoAttachment: boolean): string => {
 
 export const sendOTP = async (email: string, otp: string) => {
   const isProd = process.env.NODE_ENV === 'production';
+  const subject = `GIET(A) Events - Your Verification Code is ${otp}`;
+  const textContent = `Dear Student,\n\nYour One-Time Password (OTP) for the GIET(A) College Event Management App is: ${otp}\n\nThis code is valid for 5 minutes. Do not share this code with anyone.\n\nGandhi Institute for Education and Technology (Autonomous), Bhubaneswar`;
+  const htmlContent = buildOtpHtml(otp, false);
+
+  // 1. Resend HTTPS API (Port 443 - Works seamlessly on Render free tier)
+  if (process.env.RESEND_API_KEY) {
+    try {
+      console.log(`[EmailService] Dispatching OTP via Resend HTTPS API to ${email}...`);
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.RESEND_API_KEY.trim()}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: process.env.RESEND_FROM || 'GIET(A) Events <onboarding@resend.dev>',
+          to: [email],
+          subject,
+          html: htmlContent,
+          text: textContent,
+        }),
+      });
+
+      const resData: any = await res.json();
+      if (!res.ok) {
+        throw new Error(resData?.message || resData?.error?.message || `Resend HTTP ${res.status}`);
+      }
+      console.log(`[EmailService] Resend email dispatched successfully (ID: ${resData.id}) to ${email}`);
+      return;
+    } catch (err: any) {
+      console.error('[EmailService] Resend dispatch error:', err.message);
+      throw new Error(`Email dispatch failed via Resend: ${err.message}`);
+    }
+  }
+
+  // 2. Brevo HTTPS API (Port 443 - 300 free emails/day forever)
+  if (process.env.BREVO_API_KEY) {
+    try {
+      console.log(`[EmailService] Dispatching OTP via Brevo HTTPS API to ${email}...`);
+      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'accept': 'application/json',
+          'api-key': process.env.BREVO_API_KEY.trim(),
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          sender: { 
+            name: 'GIET(A) Events', 
+            email: process.env.BREVO_SENDER || process.env.SMTP_USER || 'kaditya39546@gmail.com' 
+          },
+          to: [{ email }],
+          subject,
+          htmlContent,
+          textContent,
+        }),
+      });
+
+      const resData: any = await res.json();
+      if (!res.ok) {
+        throw new Error(resData?.message || `Brevo HTTP ${res.status}`);
+      }
+      console.log(`[EmailService] Brevo email dispatched successfully (ID: ${resData.messageId}) to ${email}`);
+      return;
+    } catch (err: any) {
+      console.error('[EmailService] Brevo dispatch error:', err.message);
+      throw new Error(`Email dispatch failed via Brevo: ${err.message}`);
+    }
+  }
+
+  // 3. Google Apps Script Webhook (Port 443 - Native Gmail free quota)
+  if (process.env.GMAIL_SCRIPT_URL) {
+    try {
+      console.log(`[EmailService] Dispatching OTP via Google Apps Script Webhook to ${email}...`);
+      const res = await fetch(process.env.GMAIL_SCRIPT_URL.trim(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: email,
+          subject,
+          html: htmlContent,
+          text: textContent,
+        }),
+      });
+      const resData: any = await res.json();
+      if (!res.ok || resData?.success === false) {
+        throw new Error(resData?.error || `Google Webhook HTTP ${res.status}`);
+      }
+      console.log(`[EmailService] Google Webhook email dispatched successfully to ${email}`);
+      return;
+    } catch (err: any) {
+      console.error('[EmailService] Google Webhook dispatch error:', err.message);
+      throw new Error(`Email dispatch failed via Google Webhook: ${err.message}`);
+    }
+  }
+
+  // 4. Fallback: Direct Nodemailer SMTP (Works on paid Render or local dev)
   const isSmtpConfigured = !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
 
   if (isSmtpConfigured) {
@@ -117,7 +214,6 @@ export const sendOTP = async (email: string, otp: string) => {
       let smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
       const tlsServername = smtpHost;
 
-      // Directly resolve to IPv4 address to bypass missing IPv6 network routes on Render containers
       try {
         const ipv4Addresses = await dns.promises.resolve4(smtpHost);
         if (ipv4Addresses && ipv4Addresses.length > 0) {
@@ -165,8 +261,8 @@ export const sendOTP = async (email: string, otp: string) => {
       const mailOptions = {
         from: process.env.EMAIL_FROM || '"GIET(A) Event Portal" <noreply@giet.edu>',
         to: email,
-        subject: `GIET(A) Events - Your Verification Code is ${otp}`,
-        text: `Dear Student,\n\nYour One-Time Password (OTP) for the GIET(A) College Event Management App is: ${otp}\n\nThis code is valid for 5 minutes. Do not share this code with anyone.\n\nGandhi Institute for Education and Technology (Autonomous), Bhubaneswar`,
+        subject,
+        text: textContent,
         html: buildOtpHtml(otp, !!validLogoPath),
         attachments,
       };
