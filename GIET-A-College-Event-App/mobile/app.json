@@ -54,6 +54,11 @@
         }
       ]
     ],
-    "extra": {}
+    "extra": {
+      "eas": {
+        "projectId": "9cd37cbd-062f-4866-bb77-be49fd7def2e"
+      }
+    },
+    "owner": "i_m_aditya_29"
   }
 }

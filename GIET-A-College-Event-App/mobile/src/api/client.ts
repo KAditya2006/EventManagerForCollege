@@ -12,7 +12,7 @@ import { Platform, NativeModules } from 'react-native';
  * 4. Android emulator fallback (10.0.2.2:5000)
  */
 export const getBaseUrl = (): string => {
-  // 1. EXPO_PUBLIC_API_URL environment variable (filter out stale previous subnets)
+  // 1. EXPO_PUBLIC_API_URL environment variable
   const envApiUrl = process.env.EXPO_PUBLIC_API_URL;
   if (
     envApiUrl && 
@@ -22,7 +22,7 @@ export const getBaseUrl = (): string => {
     return envApiUrl.trim();
   }
 
-  // 2. Auto-detect host machine IP dynamically from Metro bundler on physical device
+  // 2. Auto-detect host machine IP dynamically from Metro bundler when in development
   const scriptURL = NativeModules?.SourceCode?.scriptURL;
   if (scriptURL && typeof scriptURL === 'string') {
     const match = scriptURL.match(/https?:\/\/([^:\/]+)/);
@@ -37,8 +37,8 @@ export const getBaseUrl = (): string => {
     }
   }
 
-  // 3. Current active Wi-Fi Hotspot IP (Adi!! network)
-  return 'http://10.69.233.183:5000/api';
+  // 3. Hosted backend API URL (Default production fallback for standalone APK testing)
+  return 'https://giet-a-event-manager.onrender.com/api';
 };
 
 export const BASE_URL = getBaseUrl();
