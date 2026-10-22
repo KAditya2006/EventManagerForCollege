@@ -47,9 +47,14 @@ export const requestOtp = async (req: Request, res: Response) => {
     await sendOTP(normalizedEmail, otpCode);
 
     return res.status(200).json({ success: true, message: 'OTP sent successfully' });
-  } catch (error) {
+  } catch (error: any) {
     console.error('[AuthController] requestOtp error:', error);
-    return res.status(500).json({ success: false, error: { message: 'Failed to request OTP' } });
+    return res.status(500).json({ 
+      success: false, 
+      error: { 
+        message: error?.message || 'Failed to request OTP' 
+      } 
+    });
   }
 };
 

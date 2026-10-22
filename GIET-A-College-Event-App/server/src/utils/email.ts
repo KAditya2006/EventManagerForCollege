@@ -155,9 +155,9 @@ export const sendOTP = async (email: string, otp: string) => {
 
       await transporter.sendMail(mailOptions);
       console.log(`[EmailService] Professional OTP email successfully dispatched to ${email}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error(`[EmailService] Error sending OTP to ${email}:`, error);
-      throw new Error('Failed to send OTP email');
+      throw new Error(`Email dispatch failed: ${error?.message || 'SMTP connection error'}`);
     }
   } else {
     if (isProd) {
