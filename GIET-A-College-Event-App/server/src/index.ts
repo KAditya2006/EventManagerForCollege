@@ -77,6 +77,12 @@ if (process.env.NODE_ENV === 'production') {
 // Body Parser with strict limit to prevent payload attacks
 app.use(express.json({ limit: '10kb' }));
 
+// Health Check Endpoint
+// (Lightweight, unauthenticated, exempt from rate-limiting for UptimeRobot & cloud keep-alive monitors)
+app.get('/api/health', (req: Request, res: Response) => {
+  res.status(200).json({ status: 'ok', message: 'Backend is running' });
+});
+
 // Global Rate Limiting
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -94,10 +100,6 @@ import eventRoutes from './routes/eventRoutes';
 import registrationRoutes from './routes/registrationRoutes';
 import adminEventRoutes from './routes/adminEventRoutes';
 import notificationRoutes from './routes/notificationRoutes';
-// Health Check Endpoint
-app.get('/api/health', (req: Request, res: Response) => {
-  res.status(200).json({ status: 'ok', message: 'GIET(A) Event App API is healthy' });
-});
 
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
@@ -118,7 +120,28 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   });
 });
 
-// Start Server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// Graceful Shutdown for container orchestrators (Render / Linux signals)
+const gracefulShutdown = async (signal: string) => {
+  console.log(`[Server] ${signal} signal received. Closing database and shutting down...`);
+  try {
+    await mongoose.connection.close(false);
+    console.log('[Server] Database connection closed cleanly.');
+    process.exit(0);
+  } catch (err) {
+    console.error('[Server] Error during graceful shutdown:', err);
+    process.exit(1);
+  }
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// Start Server (Guarded for automated testing)
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
+
+export default app;
+export { app };
