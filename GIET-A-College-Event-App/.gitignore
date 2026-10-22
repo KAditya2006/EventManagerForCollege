@@ -1,0 +1,42 @@
+# Node modules
+node_modules/
+
+# Expo
+.expo/
+dist/
+npm-debug.*
+*.jks
+*.keystore
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+credentials.json
+
+# Android Build Artifacts
+*.apk
+*.aab
+
+# macOS
+.DS_Store
+
+# Environment Variables
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# TypeScript
+*.tsbuildinfo
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Server Build
+server/dist/

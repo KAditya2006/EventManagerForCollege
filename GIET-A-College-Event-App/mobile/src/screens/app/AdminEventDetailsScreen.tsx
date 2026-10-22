@@ -1,0 +1,367 @@
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
+import { AdminStackParamList } from '../../navigation/AdminNavigator';
+import { getAdminEventDetails, updateEventStatus } from '../../api/adminEvents';
+import { Event } from '../../api/events';
+import { Button } from '../../components/Button';
+import { Card } from '../../components/Card';
+import { Badge } from '../../components/Badge';
+import { ErrorState } from '../../components/ErrorState';
+import { colors, radii, spacing, typography } from '../../theme';
+import { 
+  CalendarIcon, 
+  ClockIcon, 
+  LocationPinIcon, 
+  QrScanIcon 
+} from '../../components/FormIcons';
+
+type Props = NativeStackScreenProps<AdminStackParamList, 'AdminEventDetails'>;
+
+const AdminEventDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
+  const { eventId } = route.params;
+  const [event, setEvent] = useState<Event | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [error, setError] = useState(false);
+
+  const fetchDetails = async () => {
+    try {
+      setLoading(true);
+      setError(false);
+      const res = await getAdminEventDetails(eventId);
+      if (res.success) {
+        setEvent(res.data);
+      } else {
+        setError(true);
+      }
+    } catch (err) {
+      console.error('Failed to load event details', err);
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchDetails();
+    }, [eventId])
+  );
+
+  const handleStatusChange = (newStatus: string, confirmMessage: string) => {
+    Alert.alert(
+      'Confirm Lifecycle Change',
+      confirmMessage,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Proceed', 
+          style: newStatus === 'CANCELLED' ? 'destructive' : 'default',
+          onPress: async () => {
+            try {
+              setActionLoading(true);
+              const res = await updateEventStatus(eventId, newStatus);
+              if (res.success) {
+                setEvent(res.data);
+                Alert.alert('Status Updated', `Event status is now ${newStatus}.`);
+              } else {
+                Alert.alert('Notice', res.error?.message || 'Status update failed.');
+              }
+            } catch (err: any) {
+              Alert.alert('Error', err.response?.data?.error?.message || 'Failed to update status.');
+            } finally {
+              setActionLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  if (loading && !event) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Loading event management details...</Text>
+      </View>
+    );
+  }
+
+  if (error || !event) {
+    return (
+      <View style={styles.center}>
+        <ErrorState 
+          title="Event Not Found"
+          message="Could not load event management details."
+          onRetry={fetchDetails}
+        />
+      </View>
+    );
+  }
+
+  const eventDate = new Date(event.date).toLocaleDateString('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+  });
+
+  const getStatusVariant = (status: string) => {
+    switch (status) {
+      case 'PUBLISHED': return 'success';
+      case 'DRAFT': return 'warning';
+      case 'CANCELLED': return 'danger';
+      default: return 'neutral';
+    }
+  };
+
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {/* Event Header Card */}
+      <Card style={styles.headerCard}>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>{event.title}</Text>
+          <Badge label={event.status} variant={getStatusVariant(event.status) as any} />
+        </View>
+
+        <View style={styles.metaRow}>
+          <CalendarIcon size={14} color="#64748B" />
+          <Text style={[styles.metaText, { marginLeft: 6 }]}>{eventDate}</Text>
+        </View>
+
+        <View style={styles.metaRow}>
+          <ClockIcon size={14} color="#64748B" />
+          <Text style={[styles.metaText, { marginLeft: 6 }]}>{event.startTime} - {event.endTime}</Text>
+        </View>
+
+        <View style={styles.metaRow}>
+          <LocationPinIcon size={14} color="#64748B" />
+          <Text style={[styles.metaText, { marginLeft: 6 }]}>{event.venue}</Text>
+        </View>
+      </Card>
+
+      {/* Details Card */}
+      <Card style={styles.sectionCard}>
+        <Text style={styles.cardHeader}>EVENT CONFIGURATION</Text>
+
+        <View style={styles.fieldRow}>
+          <Text style={styles.fieldLabel}>Organizer</Text>
+          <Text style={styles.fieldValue}>{event.organizer}</Text>
+        </View>
+
+        <View style={styles.divider} />
+
+        <View style={styles.fieldRow}>
+          <Text style={styles.fieldLabel}>Category</Text>
+          <Text style={styles.fieldValue}>{event.category || 'General'}</Text>
+        </View>
+
+        <View style={styles.divider} />
+
+        <View style={styles.fieldRow}>
+          <Text style={styles.fieldLabel}>Capacity Limit</Text>
+          <Text style={styles.fieldValue}>
+            {event.capacity ? `${event.capacity} registered students max` : 'Unlimited capacity'}
+          </Text>
+        </View>
+
+        <View style={styles.divider} />
+
+        <View style={styles.descriptionBox}>
+          <Text style={styles.fieldLabel}>Description</Text>
+          <Text style={styles.description}>{event.description}</Text>
+        </View>
+      </Card>
+
+      {/* Operational Actions */}
+      <Card style={styles.actionsCard}>
+        <Text style={styles.cardHeader}>OPERATIONAL ACTIONS</Text>
+
+        {actionLoading && (
+          <ActivityIndicator size="small" color={colors.primary} style={{ marginBottom: spacing.md }} />
+        )}
+
+        {/* Scan QR Pass (High visibility when PUBLISHED) */}
+        {event.status === 'PUBLISHED' && (
+          <Button 
+            title="📷 Scan Student QR Passes"
+            onPress={() => navigation.navigate('ScanAttendance', { eventId: event._id })}
+            disabled={actionLoading}
+            variant="primary"
+            size="lg"
+            style={styles.primaryAction}
+          />
+        )}
+
+        {/* Restore to Draft if Cancelled */}
+        {event.status === 'CANCELLED' && (
+          <Button 
+            title="↩️ Restore Event to Draft"
+            onPress={() => handleStatusChange('DRAFT', 'Restoring this event to draft will allow you to edit details and re-publish it to students. Proceed?')}
+            disabled={actionLoading}
+            variant="primary"
+            size="lg"
+            style={styles.primaryAction}
+          />
+        )}
+
+        {/* View Feedback */}
+        <Button 
+          title="⭐ View Feedback & Ratings"
+          onPress={() => navigation.navigate('AdminEventFeedback', { eventId: event._id, eventTitle: event.title })}
+          disabled={actionLoading}
+          variant="secondary"
+          size="md"
+          style={styles.actionBtn}
+        />
+
+        {/* Edit Event */}
+        <Button 
+          title="✏️ Edit Event Details"
+          onPress={() => navigation.navigate('EditEvent', { eventId: event._id })}
+          disabled={actionLoading}
+          variant="secondary"
+          size="md"
+          style={styles.actionBtn}
+        />
+
+        {/* Publish Action */}
+        {event.status === 'DRAFT' && (
+          <Button 
+            title="🚀 Publish Event"
+            onPress={() => handleStatusChange('PUBLISHED', 'Publishing will immediately make this event discoverable by all students for registration. Proceed?')}
+            disabled={actionLoading}
+            variant="success"
+            size="lg"
+            style={styles.actionBtn}
+          />
+        )}
+
+        {/* Unpublish Action */}
+        {event.status === 'PUBLISHED' && (
+          <Button 
+            title="↩️ Revert to Draft (Unpublish)"
+            onPress={() => handleStatusChange('DRAFT', 'This will remove the event from student discovery while retaining existing records. Proceed?')}
+            disabled={actionLoading}
+            variant="secondary"
+            size="md"
+            style={styles.actionBtn}
+          />
+        )}
+
+        {/* Cancel Event */}
+        {(event.status === 'DRAFT' || event.status === 'PUBLISHED') && (
+          <Button 
+            title="✕ Cancel Event"
+            onPress={() => handleStatusChange('CANCELLED', 'Cancelling will notify registered students and prevent further registrations. This action cannot be easily undone. Proceed?')}
+            disabled={actionLoading}
+            variant="danger"
+            size="md"
+            style={styles.actionBtn}
+          />
+        )}
+      </Card>
+    </ScrollView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    padding: spacing.xl,
+  },
+  loadingText: {
+    ...typography.bodyMedium,
+    color: colors.textSecondary,
+    marginTop: spacing.md,
+  },
+  content: {
+    padding: spacing.lg,
+    paddingBottom: spacing.xxxl,
+  },
+  headerCard: {
+    padding: spacing.xl,
+    marginBottom: spacing.lg,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacing.md,
+  },
+  title: {
+    ...typography.titleMedium,
+    color: colors.textPrimary,
+    flex: 1,
+    marginRight: spacing.md,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  metaIcon: {
+    fontSize: 14,
+    marginRight: spacing.xs + 2,
+  },
+  metaText: {
+    ...typography.bodyMedium,
+    color: colors.textSecondary,
+  },
+  sectionCard: {
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  cardHeader: {
+    ...typography.caption,
+    color: colors.primary,
+    marginBottom: spacing.md,
+  },
+  fieldRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
+  },
+  fieldLabel: {
+    ...typography.bodyMedium,
+    color: colors.textSecondary,
+  },
+  fieldValue: {
+    ...typography.bodyMedium,
+    color: colors.textPrimary,
+    fontWeight: '600',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.surfaceBorder,
+    marginVertical: spacing.xs,
+  },
+  descriptionBox: {
+    marginTop: spacing.sm,
+  },
+  description: {
+    ...typography.bodyMedium,
+    color: colors.textSecondary,
+    lineHeight: 22,
+    marginTop: spacing.xs,
+  },
+  actionsCard: {
+    padding: spacing.lg,
+    marginBottom: spacing.xl,
+  },
+  primaryAction: {
+    marginBottom: spacing.md,
+  },
+  actionBtn: {
+    marginBottom: spacing.md,
+  },
+});
+
+export default AdminEventDetailsScreen;

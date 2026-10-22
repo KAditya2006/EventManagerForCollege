@@ -1,0 +1,39 @@
+# Backup git
+.git_backup/
+**/.git_backup/
+
+# Node modules
+node_modules/
+**/node_modules/
+
+# Environment variables
+.env
+.env.*
+**/.env
+**/.env.*
+!*.example
+
+# Expo & Metro
+.expo/
+**/.expo/
+dist/
+**/dist/
+npm-debug.*
+*.log
+
+# Keystores & Signing
+*.jks
+*.keystore
+*.p8
+*.p12
+*.key
+*.mobileprovision
+credentials.json
+
+# Build Binaries
+*.apk
+*.aab
+
+# OS
+.DS_Store
+Thumbs.db
