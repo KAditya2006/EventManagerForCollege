@@ -267,6 +267,24 @@ const StudentHomeScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
+      {/* 3.1 Prominent Scan Event QR Banner */}
+      <TouchableOpacity
+        style={styles.scanBanner}
+        onPress={() => navigation.navigate('ScanEventRegistration')}
+        activeOpacity={0.85}
+      >
+        <View style={styles.scanBannerIconBox}>
+          <Text style={{ fontSize: 20 }}>📷</Text>
+        </View>
+        <View style={styles.scanBannerTextCol}>
+          <Text style={styles.scanBannerTitle}>Scan Event QR to Register</Text>
+          <Text style={styles.scanBannerSub}>
+            Scan college posters or screens to register instantly
+          </Text>
+        </View>
+        <Text style={styles.scanBannerArrow}>→</Text>
+      </TouchableOpacity>
+
       {/* 4. Modern Search Bar */}
       <View style={styles.searchBar}>
         <SearchIcon size={18} color="#94A3B8" />
@@ -595,6 +613,50 @@ const styles = StyleSheet.create({
     fontSize: 10.5,
     color: '#94A3B8',
     marginTop: 2,
+  },
+
+  /* 3.1 Scan Banner */
+  scanBanner: {
+    backgroundColor: '#0E526B',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    shadowColor: '#0E526B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  scanBannerIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  scanBannerTextCol: {
+    flex: 1,
+  },
+  scanBannerTitle: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  scanBannerSub: {
+    fontSize: 11,
+    color: '#BAE6FD',
+    marginTop: 2,
+  },
+  scanBannerArrow: {
+    fontSize: 18,
+    color: '#FFFFFF',
+    fontWeight: '700',
+    marginLeft: 8,
   },
 
   /* 4. Search Bar */

@@ -107,12 +107,24 @@ import registrationRoutes from './routes/registrationRoutes';
 import adminEventRoutes from './routes/adminEventRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 
+import eventLandingRoutes from './routes/eventLandingRoutes';
+
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api', registrationRoutes);
 app.use('/api/admin/events', adminEventRoutes);
 app.use('/api/notifications', notificationRoutes);
+
+// Smart Universal Event Registration Landing Pages (For QR code scanning via camera/browser)
+app.use('/e', eventLandingRoutes);
+app.use('/events', eventLandingRoutes);
+
+// Direct APK Download Redirect
+app.get('/download/app', (req: Request, res: Response) => {
+  const apkDownloadUrl = process.env.APK_DOWNLOAD_URL || 'https://github.com/KAditya2006/EventManagerForCollege/raw/main/gieta-event-manager.apk';
+  res.redirect(apkDownloadUrl);
+});
 
 // Global Error Handler
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {

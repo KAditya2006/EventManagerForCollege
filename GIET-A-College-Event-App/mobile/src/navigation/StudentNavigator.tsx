@@ -16,6 +16,7 @@ import EventFeedbackScreen from '../screens/app/EventFeedbackScreen';
 import FeedbackSubmittedScreen from '../screens/app/FeedbackSubmittedScreen';
 import EditProfileScreen from '../screens/app/EditProfileScreen';
 import SettingsScreen from '../screens/app/SettingsScreen';
+import ScanEventRegistrationScreen from '../screens/app/ScanEventRegistrationScreen';
 import { Notification } from '../api/notifications';
 import { NotificationBell } from '../components/NotificationBell';
 import { colors } from '../theme';
@@ -23,6 +24,7 @@ import { colors } from '../theme';
 export type StudentStackParamList = {
   StudentTabs: undefined;
   EventDetails: { eventId: string };
+  ScanEventRegistration: undefined;
   RegistrationConfirmation: { eventId: string; registrationId: string };
   RegistrationDetails: { registrationId: string };
   QREventPass: { registrationId: string };
@@ -121,6 +123,7 @@ export const StudentNavigator = () => {
     >
       <Stack.Screen name="StudentTabs" component={StudentTabs} options={{ headerShown: false }} />
       <Stack.Screen name="EventDetails" component={EventDetailsScreen} options={{ title: 'Event Details' }} />
+      <Stack.Screen name="ScanEventRegistration" component={ScanEventRegistrationScreen} options={{ title: 'Scan Event QR', headerTitleAlign: 'center' }} />
       <Stack.Screen name="RegistrationConfirmation" component={RegistrationConfirmationScreen} options={{ title: 'Confirmed' }} />
       <Stack.Screen name="RegistrationDetails" component={RegistrationDetailsScreen} options={{ title: 'Registration Pass' }} />
       <Stack.Screen name="QREventPass" component={QREventPassScreen} options={{ title: 'Event Pass', presentation: 'modal' }} />

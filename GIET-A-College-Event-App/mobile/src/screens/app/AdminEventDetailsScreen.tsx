@@ -5,6 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { AdminStackParamList } from '../../navigation/AdminNavigator';
 import { getAdminEventDetails, updateEventStatus } from '../../api/adminEvents';
 import { Event } from '../../api/events';
+import QRCode from 'react-native-qrcode-svg';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { Badge } from '../../components/Badge';
@@ -170,6 +171,47 @@ const AdminEventDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text style={styles.fieldLabel}>Description</Text>
           <Text style={styles.description}>{event.description}</Text>
         </View>
+      </Card>
+
+      {/* Universal Registration QR Code Card (For Posters & Displays) */}
+      <Card style={styles.qrCard}>
+        <View style={styles.qrHeaderRow}>
+          <Text style={styles.cardHeader}>EVENT REGISTRATION QR CODE</Text>
+          <Badge label="Smart Pass" variant="primary" />
+        </View>
+        <Text style={styles.qrSubtitle}>
+          Display this QR Code on college screens or print on posters. Students can scan it using their GIET App to register instantly, or using any phone camera to install the app and set up their profile first.
+        </Text>
+
+        <View style={styles.qrWrapper}>
+          <QRCode
+            value={`https://giet-a-event-manager.onrender.com/e/${event._id}`}
+            size={180}
+            color="#0e526b"
+            backgroundColor="#ffffff"
+          />
+        </View>
+
+        <View style={styles.qrLinkBox}>
+          <Text style={styles.qrLinkLabel}>Registration Link:</Text>
+          <Text style={styles.qrLinkText} numberOfLines={1} ellipsizeMode="middle">
+            https://giet-a-event-manager.onrender.com/e/{event._id}
+          </Text>
+        </View>
+
+        <Button
+          title="📋 Copy Registration Link"
+          onPress={() => {
+            Alert.alert(
+              'Event Registration Link',
+              `https://giet-a-event-manager.onrender.com/e/${event._id}`,
+              [{ text: 'OK' }]
+            );
+          }}
+          variant="secondary"
+          size="sm"
+          style={{ width: '100%', marginTop: spacing.sm }}
+        />
       </Card>
 
       {/* Operational Actions */}
@@ -361,6 +403,63 @@ const styles = StyleSheet.create({
   },
   actionBtn: {
     marginBottom: spacing.md,
+  },
+  qrCard: {
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+  },
+  qrHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: spacing.xs,
+  },
+  qrSubtitle: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: spacing.md,
+  },
+  qrWrapper: {
+    padding: spacing.md,
+    backgroundColor: '#ffffff',
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.surfaceBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+  },
+  qrLinkBox: {
+    width: '100%',
+    backgroundColor: '#f8fafc',
+    padding: spacing.sm,
+    borderRadius: radii.sm,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    marginBottom: spacing.xs,
+  },
+  qrLinkLabel: {
+    ...typography.caption,
+    fontSize: 10,
+    color: colors.textSecondary,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  qrLinkText: {
+    ...typography.caption,
+    color: colors.primary,
+    fontWeight: '600',
+    marginTop: 2,
   },
 });
 

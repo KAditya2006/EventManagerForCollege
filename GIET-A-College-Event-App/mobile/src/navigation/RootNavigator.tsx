@@ -8,6 +8,16 @@ import { AdminNavigator } from './AdminNavigator';
 import SplashScreen from '../screens/auth/SplashScreen';
 import CompleteProfileScreen from '../screens/auth/CompleteProfileScreen';
 
+const linking = {
+  prefixes: ['gieta://', 'https://giet-a-event-manager.onrender.com'],
+  config: {
+    screens: {
+      EventDetails: 'event/:eventId',
+      ScanEventRegistration: 'scan',
+    },
+  },
+};
+
 export const RootNavigator = () => {
   const { user, isLoading } = useAuth();
 
@@ -16,7 +26,7 @@ export const RootNavigator = () => {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking}>
       {!user ? (
         <AuthNavigator />
       ) : !user.profileCompleted ? (
