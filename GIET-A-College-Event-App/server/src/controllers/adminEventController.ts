@@ -2,7 +2,12 @@ import { Request, Response } from 'express';
 import Event, { EventStatus } from '../models/Event';
 import mongoose from 'mongoose';
 import { AuthRequest } from '../middleware/auth';
-import { createNotification, createNotificationsForEventUpdate, createNotificationsForEventCancellation } from '../services/notificationService';
+import {
+  createNotification,
+  createNotificationsForEventUpdate,
+  createNotificationsForEventCancellation,
+  broadcastNewEventAnnouncement,
+} from '../services/notificationService';
 import { NotificationType } from '../models/Notification';
 
 export const getAdminEvents = async (req: Request, res: Response) => {
@@ -186,6 +191,12 @@ export const updateEventStatus = async (req: Request, res: Response) => {
     const previousStatus = event.status;
     event.status = status;
     await event.save();
+
+    if (status === EventStatus.PUBLISHED && previousStatus !== EventStatus.PUBLISHED) {
+      broadcastNewEventAnnouncement(event._id.toString()).catch((e) =>
+        console.warn('[AdminEventController] Broadcast new event announcement error:', e.message)
+      );
+    }
 
     if (status === EventStatus.CANCELLED && previousStatus === EventStatus.PUBLISHED) {
       await createNotificationsForEventCancellation(event._id.toString(), event.title);

@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User, { UserRole } from '../models/User';
 import Otp from '../models/Otp';
-import { sendOTP } from '../utils/email';
+import { sendOTP, sendWelcomeEmail } from '../utils/email';
 
 const generateOtp = () => {
   // Generate 6-digit OTP securely
@@ -129,6 +129,11 @@ export const verifyOtp = async (req: Request, res: Response) => {
         name: isAdminEmail ? 'Aditya (Admin)' : undefined
       });
       isNewUser = true;
+
+      // Send institutional welcome email asynchronously
+      sendWelcomeEmail(normalizedEmail, user.name, user.role).catch((err) => {
+        console.warn('[AuthController] Welcome email dispatch error:', err.message);
+      });
     } else if (isAdminEmail && user.role !== UserRole.ADMIN) {
       user.role = UserRole.ADMIN;
       user.profileCompleted = true;
