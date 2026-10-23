@@ -22,13 +22,13 @@ async function run() {
   if (user) {
     user.role = UserRole.ADMIN;
     user.profileCompleted = true;
-    if (!user.name) user.name = 'Aditya (Admin)';
+    if (!user.name) user.name = 'Administrator';
     await user.save();
     console.log(`[SUCCESS] Existing user ${targetEmail} updated to role: ${user.role}`);
   } else {
     user = await User.create({
       email: targetEmail,
-      name: 'Aditya (Admin)',
+      name: 'Administrator',
       role: UserRole.ADMIN,
       profileCompleted: true,
     });

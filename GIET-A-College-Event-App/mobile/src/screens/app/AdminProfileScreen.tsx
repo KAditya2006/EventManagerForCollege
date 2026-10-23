@@ -86,7 +86,7 @@ const AdminProfileScreen: React.FC = () => {
 
   const displayName = profileData?.name || user?.name || 'Administrator';
   const initial = displayName.charAt(0).toUpperCase() || 'A';
-  const email = profileData?.email || user?.email || 'admin@giet.edu';
+  const email = profileData?.email || user?.email || '';
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>

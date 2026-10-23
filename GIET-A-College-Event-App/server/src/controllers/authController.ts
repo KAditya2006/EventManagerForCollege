@@ -126,7 +126,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
         email: normalizedEmail,
         role: isAdminEmail ? UserRole.ADMIN : UserRole.STUDENT,
         profileCompleted: isAdminEmail,
-        name: isAdminEmail ? 'Aditya (Admin)' : undefined
+        name: isAdminEmail ? 'Administrator' : undefined
       });
       isNewUser = true;
 

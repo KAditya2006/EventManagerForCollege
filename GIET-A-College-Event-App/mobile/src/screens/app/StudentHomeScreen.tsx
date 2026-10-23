@@ -141,9 +141,9 @@ const StudentHomeScreen: React.FC = () => {
   }, [profile, user]);
 
   const studentRoll = profile?.rollNumber || user?.rollNumber;
-  const studentCourse = profile?.course || user?.course || 'B.Tech';
-  const studentBranch = profile?.branch || user?.branch || 'CSE';
-  const studentYear = profile?.year || user?.year || '3rd Year';
+  const studentCourse = profile?.course || user?.course;
+  const studentBranch = profile?.branch || user?.branch;
+  const studentYear = profile?.year || user?.year;
 
   const renderEventCard = ({ item }: { item: Event }) => {
     const d = new Date(item.date);
@@ -231,7 +231,7 @@ const StudentHomeScreen: React.FC = () => {
               studentCourse,
               studentBranch,
               studentYear
-            ].filter(Boolean).join(' • ')}
+            ].filter(Boolean).join(' • ') || 'Student Profile'}
           </Text>
         </View>
       </View>

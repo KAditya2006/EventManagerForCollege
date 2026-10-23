@@ -596,15 +596,11 @@ export const sendEmail = async ({ to, subject, html, text }: SendEmailOptions): 
     }
   }
 
-  if (isProd) {
-    const errorMsg = dispatchErrors.length > 0
-      ? `All email delivery providers failed: ${dispatchErrors.join(' | ')}`
-      : 'Production email credentials missing or invalid in environment variables.';
-    console.error(`[EmailService Error] ${errorMsg}`);
-    throw new Error(errorMsg);
-  } else {
-    console.log(`[EmailService - MOCK] Dispatched email "${subject}" to ${recipients.join(', ')}`);
-  }
+  const errorMsg = dispatchErrors.length > 0
+    ? `All email delivery providers failed: ${dispatchErrors.join(' | ')}`
+    : 'Email delivery credentials (BREVO_API_KEY or SMTP_USER/SMTP_PASS) missing or invalid in environment.';
+  console.error(`[EmailService Error] ${errorMsg}`);
+  throw new Error(errorMsg);
 };
 
 /**

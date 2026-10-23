@@ -70,7 +70,7 @@ const AdminDashboardScreen: React.FC = () => {
   const cancelledCount = events.filter(e => e.status === 'CANCELLED').length;
 
   const recentEvents = events.slice(0, 3);
-  const adminName = user?.name ? user.name.split(' ')[0] : 'Aditya';
+  const adminName = user?.name ? user.name.split(' ')[0] : 'Admin';
 
   if (loading && !refreshing) {
     return (

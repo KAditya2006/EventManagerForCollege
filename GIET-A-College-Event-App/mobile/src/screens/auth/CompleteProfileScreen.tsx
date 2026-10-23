@@ -87,12 +87,12 @@ const CompleteProfileScreen: React.FC<Props> = () => {
   const [name, setName] = useState('');
   const [rollNumber, setRollNumber] = useState('');
   const [phone, setPhone] = useState('');
-  const [course, setCourse] = useState('B.Tech');
-  const [branch, setBranch] = useState('CSE');
+  const [course, setCourse] = useState('');
+  const [branch, setBranch] = useState('');
   const [customBranch, setCustomBranch] = useState('');
   const [isOtherBranch, setIsOtherBranch] = useState(false);
-  const [year, setYear] = useState('3rd Year');
-  const [semester, setSemester] = useState('5th Sem');
+  const [year, setYear] = useState('');
+  const [semester, setSemester] = useState('');
   const [section, setSection] = useState('');
 
   const [activeModal, setActiveModal] = useState<ModalType>(null);
@@ -118,9 +118,21 @@ const CompleteProfileScreen: React.FC<Props> = () => {
       errs.phone = 'Enter a valid 10-digit number';
     }
 
+    if (!course.trim()) {
+      errs.course = 'Please select your degree / program';
+    }
+
     const effectiveBranch = isOtherBranch ? customBranch.trim() : branch.trim();
     if (!effectiveBranch) {
       errs.branch = 'Branch is required';
+    }
+
+    if (!year.trim()) {
+      errs.year = 'Please select your year';
+    }
+
+    if (!semester.trim()) {
+      errs.semester = 'Please select your semester';
     }
 
     setErrors(errs);
@@ -320,7 +332,7 @@ const CompleteProfileScreen: React.FC<Props> = () => {
                 <UserIcon size={18} color="#64748B" />
                 <TextInput
                   style={styles.inputField}
-                  placeholder="e.g., Aditya Kumar Choudhary"
+                  placeholder="e.g., Full Name (as per ID card)"
                   placeholderTextColor="#94A3B8"
                   value={name}
                   onChangeText={(text) => {
@@ -392,16 +404,19 @@ const CompleteProfileScreen: React.FC<Props> = () => {
             <View style={styles.fieldWrapper}>
               <Text style={styles.label}>Degree / Program <Text style={styles.requiredStar}>*</Text></Text>
               <TouchableOpacity
-                style={styles.pickerBox}
+                style={[styles.pickerBox, errors.course && styles.inputBoxError]}
                 onPress={() => setActiveModal('course')}
                 activeOpacity={0.7}
               >
                 <View style={styles.pickerLeft}>
                   <GraduationCapIcon size={19} color={colors.primary} />
-                  <Text style={styles.pickerValue}>{course}</Text>
+                  <Text style={[styles.pickerValue, !course && { color: '#94A3B8' }]}>
+                    {course || 'Select Degree / Program'}
+                  </Text>
                 </View>
                 <ChevronDownIcon size={18} color="#94A3B8" />
               </TouchableOpacity>
+              {errors.course ? <Text style={styles.errorText}>{errors.course}</Text> : null}
             </View>
 
             {/* Branch / Department (Sleek Picker) */}
@@ -414,8 +429,8 @@ const CompleteProfileScreen: React.FC<Props> = () => {
               >
                 <View style={styles.pickerLeft}>
                   <BranchIcon size={19} color={colors.primary} />
-                  <Text style={styles.pickerValue} numberOfLines={1}>
-                    {isOtherBranch ? (customBranch || 'Other Branch (Tap to specify)') : branch}
+                  <Text style={[styles.pickerValue, (!branch && !customBranch) && { color: '#94A3B8' }]} numberOfLines={1}>
+                    {isOtherBranch ? (customBranch || 'Other Branch (Tap to specify)') : (branch || 'Select Branch / Department')}
                   </Text>
                 </View>
                 <ChevronDownIcon size={18} color="#94A3B8" />
@@ -442,32 +457,38 @@ const CompleteProfileScreen: React.FC<Props> = () => {
               <View style={[styles.fieldWrapper, { flex: 1, marginRight: 8 }]}>
                 <Text style={styles.label}>Year <Text style={styles.requiredStar}>*</Text></Text>
                 <TouchableOpacity
-                  style={styles.pickerBox}
+                  style={[styles.pickerBox, errors.year && styles.inputBoxError]}
                   onPress={() => setActiveModal('year')}
                   activeOpacity={0.7}
                 >
                   <View style={styles.pickerLeft}>
                     <CalendarIcon size={17} color={colors.primary} />
-                    <Text style={styles.pickerValue}>{year}</Text>
+                    <Text style={[styles.pickerValue, !year && { color: '#94A3B8' }]}>
+                      {year || 'Select Year'}
+                    </Text>
                   </View>
                   <ChevronDownIcon size={16} color="#94A3B8" />
                 </TouchableOpacity>
+                {errors.year ? <Text style={styles.errorText}>{errors.year}</Text> : null}
               </View>
 
               {/* Semester */}
               <View style={[styles.fieldWrapper, { flex: 1, marginLeft: 8 }]}>
                 <Text style={styles.label}>Semester <Text style={styles.requiredStar}>*</Text></Text>
                 <TouchableOpacity
-                  style={styles.pickerBox}
+                  style={[styles.pickerBox, errors.semester && styles.inputBoxError]}
                   onPress={() => setActiveModal('semester')}
                   activeOpacity={0.7}
                 >
                   <View style={styles.pickerLeft}>
                     <CalendarIcon size={17} color={colors.primary} />
-                    <Text style={styles.pickerValue}>{semester}</Text>
+                    <Text style={[styles.pickerValue, !semester && { color: '#94A3B8' }]}>
+                      {semester || 'Select Sem'}
+                    </Text>
                   </View>
                   <ChevronDownIcon size={16} color="#94A3B8" />
                 </TouchableOpacity>
+                {errors.semester ? <Text style={styles.errorText}>{errors.semester}</Text> : null}
               </View>
             </View>
 
