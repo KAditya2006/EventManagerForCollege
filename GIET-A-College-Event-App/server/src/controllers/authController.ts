@@ -48,21 +48,12 @@ export const requestOtp = async (req: Request, res: Response) => {
       await sendOTP(normalizedEmail, otpCode);
       return res.status(200).json({ success: true, message: 'OTP sent successfully' });
     } catch (emailErr: any) {
-      console.warn(`[AuthController] SMTP dispatch failed (Render free plan blocks outbound SMTP ports 25/465/587):`, emailErr.message);
-      console.log(`[TESTING OTP] Use code: ${otpCode} for ${normalizedEmail}`);
-
-      // Permit testing OTP 123456 so APK testers on Render free tier are never locked out
-      const fallbackHash = await bcrypt.hash('123456', 10);
-      await Otp.create({
-        email: normalizedEmail,
-        otpHash: fallbackHash,
-        expiresAt,
-      });
-
-      return res.status(200).json({ 
-        success: true, 
-        message: 'OTP dispatch initiated. (If email blocked by Render free tier, enter test code 123456)',
-        testOtp: '123456'
+      console.error(`[AuthController] Email dispatch failed:`, emailErr.message);
+      return res.status(500).json({ 
+        success: false, 
+        error: { 
+          message: `Failed to send email OTP: ${emailErr.message || 'Email delivery service error'}` 
+        } 
       });
     }
   } catch (error: any) {
