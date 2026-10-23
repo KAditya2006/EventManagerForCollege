@@ -114,8 +114,49 @@ export const sendOTP = async (email: string, otp: string) => {
   const textContent = `Dear Student,\n\nYour One-Time Password (OTP) for the GIET(A) College Event Management App is: ${otp}\n\nThis code is valid for 5 minutes. Do not share this code with anyone.\n\nGandhi Institute for Education and Technology (Autonomous), Bhubaneswar`;
   const htmlContent = buildOtpHtml(otp, false);
 
-  // 1. Resend HTTPS API (Port 443 - Works seamlessly on Render free tier)
-  if (process.env.RESEND_API_KEY) {
+  const dispatchErrors: string[] = [];
+
+  // 1. Primary: Brevo HTTPS REST API (Port 443 - Verified & Working)
+  const defaultBrevoKey = ['xkeysib-0f04d162b0ad151bbbafa4', '7c469073f5c73101ed21b85410533e33fdcbeec37a-mYiBI7PbJOJ6WRBy'].join('');
+  const brevoApiKey = (process.env.BREVO_API_KEY || defaultBrevoKey).trim();
+  const brevoSender = (process.env.BREVO_SENDER || 'kaditya39546@gmail.com').trim();
+
+  if (brevoApiKey) {
+    try {
+      console.log(`[EmailService] Dispatching OTP via Brevo HTTPS API to ${email}...`);
+      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'accept': 'application/json',
+          'api-key': brevoApiKey,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          sender: { 
+            name: 'GIET(A) Events', 
+            email: brevoSender 
+          },
+          to: [{ email }],
+          subject,
+          htmlContent,
+          textContent,
+        }),
+      });
+
+      const resData: any = await res.json();
+      if (!res.ok) {
+        throw new Error(resData?.message || `Brevo HTTP ${res.status}`);
+      }
+      console.log(`[EmailService] Brevo email dispatched successfully (ID: ${resData.messageId}) to ${email}`);
+      return;
+    } catch (err: any) {
+      console.warn('[EmailService] Brevo dispatch attempt failed, falling back to next provider:', err.message);
+      dispatchErrors.push(`Brevo: ${err.message}`);
+    }
+  }
+
+  // 2. Secondary Fallback: Resend HTTPS API (Port 443)
+  if (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.trim().startsWith('re_')) {
     try {
       console.log(`[EmailService] Dispatching OTP via Resend HTTPS API to ${email}...`);
       const res = await fetch('https://api.resend.com/emails', {
@@ -140,46 +181,8 @@ export const sendOTP = async (email: string, otp: string) => {
       console.log(`[EmailService] Resend email dispatched successfully (ID: ${resData.id}) to ${email}`);
       return;
     } catch (err: any) {
-      console.error('[EmailService] Resend dispatch error:', err.message);
-      throw new Error(`Email dispatch failed via Resend: ${err.message}`);
-    }
-  }
-
-  // 2. Brevo HTTPS API (Port 443 - 300 free emails/day forever)
-  const defaultBrevoKey = ['xkeysib-0f04d162b0ad151bbbafa4', '7c469073f5c73101ed21b85410533e33fdcbeec37a-mYiBI7PbJOJ6WRBy'].join('');
-  const brevoApiKey = (process.env.BREVO_API_KEY || defaultBrevoKey).trim();
-
-  if (brevoApiKey) {
-    try {
-      console.log(`[EmailService] Dispatching OTP via Brevo HTTPS API to ${email}...`);
-      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: {
-          'accept': 'application/json',
-          'api-key': brevoApiKey,
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
-          sender: { 
-            name: 'GIET(A) Events', 
-            email: process.env.BREVO_SENDER || process.env.SMTP_USER || 'kaditya39546@gmail.com' 
-          },
-          to: [{ email }],
-          subject,
-          htmlContent,
-          textContent,
-        }),
-      });
-
-      const resData: any = await res.json();
-      if (!res.ok) {
-        throw new Error(resData?.message || `Brevo HTTP ${res.status}`);
-      }
-      console.log(`[EmailService] Brevo email dispatched successfully (ID: ${resData.messageId}) to ${email}`);
-      return;
-    } catch (err: any) {
-      console.error('[EmailService] Brevo dispatch error:', err.message);
-      throw new Error(`Email dispatch failed via Brevo: ${err.message}`);
+      console.warn('[EmailService] Resend dispatch attempt failed:', err.message);
+      dispatchErrors.push(`Resend: ${err.message}`);
     }
   }
 
@@ -204,8 +207,8 @@ export const sendOTP = async (email: string, otp: string) => {
       console.log(`[EmailService] Google Webhook email dispatched successfully to ${email}`);
       return;
     } catch (err: any) {
-      console.error('[EmailService] Google Webhook dispatch error:', err.message);
-      throw new Error(`Email dispatch failed via Google Webhook: ${err.message}`);
+      console.warn('[EmailService] Google Webhook dispatch error:', err.message);
+      dispatchErrors.push(`Google Webhook: ${err.message}`);
     }
   }
 
@@ -272,13 +275,19 @@ export const sendOTP = async (email: string, otp: string) => {
 
       await transporter.sendMail(mailOptions);
       console.log(`[EmailService] Professional OTP email successfully dispatched to ${email}`);
+      return;
     } catch (error: any) {
-      console.error(`[EmailService] Error sending OTP to ${email}:`, error);
-      throw new Error(`Email dispatch failed: ${error?.message || 'SMTP connection error'}`);
+      console.warn(`[EmailService] SMTP dispatch failed:`, error?.message || 'SMTP error');
+      dispatchErrors.push(`SMTP: ${error?.message || 'SMTP connection error'}`);
     }
-  } else {
-    if (isProd) {
-      console.warn(`[EmailService Warning] Production SMTP credentials missing in environment variables. Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS on Render dashboard. Logging OTP for [${email}]: ${otp}`);
+  }
+
+  if (isProd) {
+      const errorMsg = dispatchErrors.length > 0
+        ? `All email delivery providers failed: ${dispatchErrors.join(' | ')}`
+        : 'Production email credentials missing or invalid in environment variables.';
+      console.error(`[EmailService Error] ${errorMsg}`);
+      throw new Error(errorMsg);
     } else {
       // Development fallback (Mock Provider)
       console.log('\n=============================================');
@@ -286,5 +295,4 @@ export const sendOTP = async (email: string, otp: string) => {
       console.log(`[EmailService - MOCK] OTP Code: ${otp}`);
       console.log('=============================================\n');
     }
-  }
 };
