@@ -126,7 +126,7 @@ app.use('/events', eventLandingRoutes);
 
 // Direct APK Download Redirect
 app.get('/download/app', (req: Request, res: Response) => {
-  const apkDownloadUrl = process.env.APK_DOWNLOAD_URL || 'https://github.com/KAditya2006/EventManagerForCollege/raw/main/gieta-event-manager.apk';
+  const apkDownloadUrl = process.env.APK_DOWNLOAD_URL || 'https://expo.dev/artifacts/eas/dVEU3kzdTSHBa3aLMMD_2LLnSGvagntbFM6yEvYJN4g.apk';
   res.redirect(apkDownloadUrl);
 });
 
