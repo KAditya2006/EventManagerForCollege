@@ -22,10 +22,12 @@ import { colors, radii, spacing, typography } from '../../theme';
 type Props = NativeStackScreenProps<AuthStackParamList, 'EmailLogin'>;
 
 const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isFocused, setIsFocused] = useState(false);
+  const [nameFocused, setNameFocused] = useState(false);
 
   const inputRef = useRef<TextInput>(null);
 
@@ -52,7 +54,10 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
     setLoading(true);
     try {
       await requestOtp(trimmedEmail);
-      navigation.navigate('OtpVerification', { email: trimmedEmail });
+      navigation.navigate('OtpVerification', { 
+        email: trimmedEmail,
+        name: name.trim() || undefined
+      });
     } catch (error: any) {
       let msg = error.response?.data?.error?.message;
       if (!msg) {
@@ -113,6 +118,24 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
 
           {/* Form Section */}
           <View style={styles.form}>
+            <Text style={styles.inputLabel}>Full Name (For New Registrations)</Text>
+            <TextInput
+              style={[
+                styles.textInput,
+                nameFocused && styles.textInputFocused,
+                { marginBottom: 14 },
+              ]}
+              placeholder="e.g., Aditya Kumar"
+              placeholderTextColor="#94A3B8"
+              value={name}
+              onChangeText={setName}
+              onFocus={() => setNameFocused(true)}
+              onBlur={() => setNameFocused(false)}
+              autoCapitalize="words"
+              editable={!loading}
+              accessibilityLabel="Full Name"
+            />
+
             <Text style={styles.inputLabel}>Email Address</Text>
             <TextInput
               ref={inputRef}

@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import Event, { EventStatus } from '../models/Event';
 import Registration, { RegistrationStatus } from '../models/Registration';
-import { UserRole } from '../models/User';
+import User, { UserRole } from '../models/User';
 import { AuthRequest } from '../middleware/auth';
 import { createNotification } from '../services/notificationService';
 import { NotificationType } from '../models/Notification';
@@ -87,9 +87,16 @@ export const registerForEvent = async (req: Request, res: Response) => {
     const crypto = require('crypto');
     const qrToken = crypto.randomBytes(32).toString('hex');
 
+    // Fetch student profile details to store name/email directly on the registration record
+    const studentUser = await User.findById(studentId).select('name email rollNumber branch');
+
     // Create registration
     const registration = new Registration({
       student: studentId,
+      studentName: studentUser?.name || 'Student',
+      studentEmail: studentUser?.email,
+      studentRollNumber: studentUser?.rollNumber,
+      studentBranch: studentUser?.branch,
       event: eventId,
       status: RegistrationStatus.REGISTERED,
       qrToken,

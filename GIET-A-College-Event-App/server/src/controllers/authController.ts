@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -117,16 +118,33 @@ export const verifyOtp = async (req: Request, res: Response) => {
       .map(e => e.trim());
     const isAdminEmail = adminEmails.includes(normalizedEmail);
 
+    const getCleanNameFromEmail = (em: string) => {
+      const prefix = em.split('@')[0];
+      const cleaned = prefix
+        .replace(/[._-]+/g, ' ')
+        .replace(/\d+/g, '')
+        .trim();
+      if (!cleaned) return prefix;
+      return cleaned
+        .split(' ')
+        .filter(Boolean)
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(' ');
+    };
+
+    const providedName = (req.body.name && typeof req.body.name === 'string') ? req.body.name.trim() : '';
+
     // Find or create User
     let user = await User.findOne({ email: normalizedEmail });
     let isNewUser = false;
 
     if (!user) {
+      const initialName = providedName || (isAdminEmail ? 'Administrator' : getCleanNameFromEmail(normalizedEmail));
       user = await User.create({ 
         email: normalizedEmail,
         role: isAdminEmail ? UserRole.ADMIN : UserRole.STUDENT,
         profileCompleted: isAdminEmail,
-        name: isAdminEmail ? 'Administrator' : undefined
+        name: initialName,
       });
       isNewUser = true;
 
@@ -134,10 +152,23 @@ export const verifyOtp = async (req: Request, res: Response) => {
       sendWelcomeEmail(normalizedEmail, user.name, user.role).catch((err) => {
         console.warn('[AuthController] Welcome email dispatch error:', err.message);
       });
-    } else if (isAdminEmail && user.role !== UserRole.ADMIN) {
-      user.role = UserRole.ADMIN;
-      user.profileCompleted = true;
-      await user.save();
+    } else {
+      let needsSave = false;
+      if (isAdminEmail && user.role !== UserRole.ADMIN) {
+        user.role = UserRole.ADMIN;
+        user.profileCompleted = true;
+        needsSave = true;
+      }
+      if (providedName && (!user.name || user.name !== providedName)) {
+        user.name = providedName;
+        needsSave = true;
+      } else if (!user.name) {
+        user.name = isAdminEmail ? 'Administrator' : getCleanNameFromEmail(normalizedEmail);
+        needsSave = true;
+      }
+      if (needsSave) {
+        await user.save();
+      }
     }
 
     const secret = process.env.JWT_SECRET || 'fallback_secret_for_dev';
@@ -202,6 +233,24 @@ export const completeProfile = async (req: Request, res: Response) => {
 
     if (!user) {
       return res.status(404).json({ success: false, error: { message: 'User not found' } });
+    }
+
+    // Keep registration records in sync with updated student name & details
+    try {
+      const Registration = mongoose.model('Registration');
+      await Registration.updateMany(
+        { student: user._id },
+        {
+          $set: {
+            studentName: user.name,
+            studentEmail: user.email,
+            studentRollNumber: user.rollNumber,
+            studentBranch: user.branch,
+          },
+        }
+      );
+    } catch (syncErr: any) {
+      console.warn('[AuthController] Registration sync warning:', syncErr.message);
     }
 
     return res.status(200).json({

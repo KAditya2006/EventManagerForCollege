@@ -23,7 +23,7 @@ import { colors, radii, spacing, typography } from '../../theme';
 type Props = NativeStackScreenProps<AuthStackParamList, 'OtpVerification'>;
 
 const OtpVerificationScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { email } = route.params;
+  const { email, name } = route.params;
   const { signIn } = useAuth();
   
   const [digits, setDigits] = useState<string[]>(['', '', '', '', '', '']);
@@ -89,7 +89,7 @@ const OtpVerificationScreen: React.FC<Props> = ({ navigation, route }) => {
 
     setLoading(true);
     try {
-      const response = await verifyOtp(email, otpValue);
+      const response = await verifyOtp(email, otpValue, name);
       if (response.success) {
         const { token, user } = response.data;
         await signIn(token, user);

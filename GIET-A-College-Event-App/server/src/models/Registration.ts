@@ -7,6 +7,10 @@ export enum RegistrationStatus {
 
 export interface IRegistration extends Document {
   student: mongoose.Types.ObjectId;
+  studentName?: string;
+  studentEmail?: string;
+  studentRollNumber?: string;
+  studentBranch?: string;
   event: mongoose.Types.ObjectId;
   status: RegistrationStatus;
   qrToken: string;
@@ -20,6 +24,10 @@ export interface IRegistration extends Document {
 const registrationSchema = new Schema(
   {
     student: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    studentName: { type: String, trim: true },
+    studentEmail: { type: String, trim: true, lowercase: true },
+    studentRollNumber: { type: String, trim: true },
+    studentBranch: { type: String, trim: true },
     event: { type: Schema.Types.ObjectId, ref: 'Event', required: true },
     status: {
       type: String,

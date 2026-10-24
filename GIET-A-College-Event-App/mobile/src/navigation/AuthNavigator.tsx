@@ -8,7 +8,7 @@ import CompleteProfileScreen from '../screens/auth/CompleteProfileScreen';
 export type AuthStackParamList = {
   Welcome: undefined;
   EmailLogin: undefined;
-  OtpVerification: { email: string };
+  OtpVerification: { email: string; name?: string };
   CompleteProfile: undefined;
 };
 

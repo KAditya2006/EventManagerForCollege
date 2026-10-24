@@ -5,8 +5,8 @@ export const requestOtp = async (email: string) => {
   return response.data;
 };
 
-export const verifyOtp = async (email: string, otp: string) => {
-  const response = await api.post('/auth/verify-otp', { email, otp });
+export const verifyOtp = async (email: string, otp: string, name?: string) => {
+  const response = await api.post('/auth/verify-otp', { email, otp, name });
   return response.data;
 };
 
