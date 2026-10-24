@@ -12,6 +12,7 @@
     "expo-image-picker": "~57.0.20",
     "expo-secure-store": "~57.0.4",
     "expo-status-bar": "~57.0.1",
+    "expo-updates": "~57.0.26",
     "react": "19.2.3",
     "react-native": "0.86.3",
     "react-native-qrcode-svg": "^6.3.26",
@@ -31,7 +32,9 @@
     "typecheck": "tsc --noEmit",
     "export": "expo export --platform android",
     "build:apk": "eas build --platform android --profile production-apk",
-    "build:aab": "eas build --platform android --profile production"
+    "build:aab": "eas build --platform android --profile production",
+    "update:live": "eas update --channel production --message \"Production OTA Update\"",
+    "update:preview": "eas update --channel preview --message \"Preview OTA Update\""
   },
   "private": true
 }

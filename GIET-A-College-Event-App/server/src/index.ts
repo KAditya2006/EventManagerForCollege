@@ -107,6 +107,7 @@ import eventRoutes from './routes/eventRoutes';
 import registrationRoutes from './routes/registrationRoutes';
 import adminEventRoutes from './routes/adminEventRoutes';
 import notificationRoutes from './routes/notificationRoutes';
+import systemRoutes from './routes/systemRoutes';
 
 import eventLandingRoutes from './routes/eventLandingRoutes';
 
@@ -117,6 +118,7 @@ app.use('/api', registrationRoutes);
 app.use('/api/admin', adminEventRoutes);
 app.use('/api/admin/events', adminEventRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/system', systemRoutes);
 
 // Smart Universal Event Registration Landing Pages (For QR code scanning via camera/browser)
 app.use('/e', eventLandingRoutes);

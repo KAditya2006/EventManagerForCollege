@@ -45,7 +45,14 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "updates": {
+      "url": "https://u.expo.dev/9cd37cbd-062f-4866-bb77-be49fd7def2e"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "plugins": [
+      "expo-updates",
       "expo-secure-store",
       [
         "expo-camera",
