@@ -10,8 +10,11 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Image,
+  Modal,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import * as ImagePicker from 'expo-image-picker';
 import { AdminStackParamList } from '../../navigation/AdminNavigator';
 import { getAdminEventDetails, getEventParticipants, updateEventWinners } from '../../api/adminEvents';
 import { Button } from '../../components/Button';
@@ -61,6 +64,9 @@ const AdminEventWinnersScreen: React.FC<Props> = ({ route, navigation }) => {
   });
 
   const [markAsCompleted, setMarkAsCompleted] = useState(true);
+  const [evidenceImages, setEvidenceImages] = useState<string[]>([]);
+  const [imageUrlInput, setImageUrlInput] = useState('');
+  const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
 
   useEffect(() => {
     fetchInitialData();
@@ -74,12 +80,17 @@ const AdminEventWinnersScreen: React.FC<Props> = ({ route, navigation }) => {
         getEventParticipants(eventId),
       ]);
 
-      if (eventRes.success && eventRes.data?.winners?.length > 0) {
-        eventRes.data.winners.forEach((w: WinnerSlot) => {
-          if (w.position === 1) setFirstPlace({ ...w, position: 1 });
-          if (w.position === 2) setSecondPlace({ ...w, position: 2 });
-          if (w.position === 3) setThirdPlace({ ...w, position: 3 });
-        });
+      if (eventRes.success && eventRes.data) {
+        if (eventRes.data.winners?.length > 0) {
+          eventRes.data.winners.forEach((w: WinnerSlot) => {
+            if (w.position === 1) setFirstPlace({ ...w, position: 1 });
+            if (w.position === 2) setSecondPlace({ ...w, position: 2 });
+            if (w.position === 3) setThirdPlace({ ...w, position: 3 });
+          });
+        }
+        if (Array.isArray(eventRes.data.evidenceImages) && eventRes.data.evidenceImages.length > 0) {
+          setEvidenceImages(eventRes.data.evidenceImages);
+        }
       }
 
       if (participantsRes.success && participantsRes.data?.participants) {
@@ -90,6 +101,66 @@ const AdminEventWinnersScreen: React.FC<Props> = ({ route, navigation }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePickEvidence = async () => {
+    try {
+      if (evidenceImages.length >= 10) {
+        Alert.alert('Limit Reached', 'You can upload a maximum of 10 evidence photos per event.');
+        return;
+      }
+
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert('Permission Denied', 'Camera roll access is required to select photos.');
+        return;
+      }
+
+      const maxSelectable = 10 - evidenceImages.length;
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsMultipleSelection: true,
+        selectionLimit: maxSelectable,
+        quality: 0.65,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const newImages: string[] = [];
+        for (const asset of result.assets) {
+          if (asset.base64) {
+            const mime = asset.mimeType || 'image/jpeg';
+            newImages.push(`data:${mime};base64,${asset.base64}`);
+          } else if (asset.uri) {
+            newImages.push(asset.uri);
+          }
+        }
+
+        const combined = [...evidenceImages, ...newImages].slice(0, 10);
+        setEvidenceImages(combined);
+      }
+    } catch (err: any) {
+      Alert.alert('Picker Error', err.message || 'Failed to pick evidence images.');
+    }
+  };
+
+  const handleAddImageUrl = () => {
+    const trimmed = imageUrlInput.trim();
+    if (!trimmed) return;
+    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+      Alert.alert('Invalid URL', 'Please enter a valid web image link starting with http:// or https://');
+      return;
+    }
+    if (evidenceImages.length >= 10) {
+      Alert.alert('Limit Reached', 'Maximum 10 evidence photos allowed per event.');
+      return;
+    }
+    setEvidenceImages((prev) => [...prev, trimmed]);
+    setImageUrlInput('');
+  };
+
+  const handleRemoveEvidence = (index: number) => {
+    setEvidenceImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSelectParticipant = (participant: any, target: 1 | 2 | 3) => {
@@ -118,15 +189,24 @@ const AdminEventWinnersScreen: React.FC<Props> = ({ route, navigation }) => {
       return;
     }
 
+    if (markAsCompleted && evidenceImages.length === 0) {
+      Alert.alert(
+        'Evidence Photos Required 📸',
+        'To mark this event as COMPLETED, please upload at least 1 prize distribution or event evidence photo as proof.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     try {
       setSubmitting(true);
-      const res = await updateEventWinners(eventId, winnersList, markAsCompleted);
+      const res = await updateEventWinners(eventId, winnersList, markAsCompleted, evidenceImages);
       if (res.success) {
         Alert.alert(
           markAsCompleted ? '🏆 Winners Announced & Event Completed!' : '🏆 Winners Published!',
           markAsCompleted
-            ? 'Event winners have been officially announced, prize distribution is recorded, and this event is now marked as COMPLETED.'
-            : 'Event winners have been officially announced and saved to the leaderboard. All registered students will receive a notification.',
+            ? 'Event winners have been officially announced, prize distribution evidence is recorded, and this event is now marked as COMPLETED.'
+            : 'Event winners and evidence photos have been saved to the leaderboard. All registered students will receive a notification.',
           [
             {
               text: 'OK',
@@ -383,6 +463,102 @@ const AdminEventWinnersScreen: React.FC<Props> = ({ route, navigation }) => {
           </Card>
         ) : null}
 
+        {/* Evidence & Prize Distribution Photos Card */}
+        <Card style={styles.evidenceCard}>
+          <View style={styles.evidenceHeaderRow}>
+            <View style={{ flex: 1, marginRight: 8 }}>
+              <Text style={styles.cardHeader}>📸 PRIZE DISTRIBUTION & EVENT EVIDENCE PHOTOS</Text>
+              <Text style={styles.evidenceSub}>
+                Upload proof photos of prize distribution, certificates, trophies, or event highlights (Max 10 photos).
+                {markAsCompleted && (
+                  <Text style={{ color: '#E11D48', fontWeight: '700' }}>
+                    {' '}At least 1 photo is required to complete this event.
+                  </Text>
+                )}
+              </Text>
+            </View>
+            <View style={[styles.photoCountBadge, evidenceImages.length > 0 && styles.photoCountBadgeActive]}>
+              <Text style={[styles.photoCountText, evidenceImages.length > 0 && styles.photoCountTextActive]}>
+                {evidenceImages.length} / 10
+              </Text>
+            </View>
+          </View>
+
+          {/* Photos Grid */}
+          {evidenceImages.length > 0 ? (
+            <View style={styles.evidenceGrid}>
+              {evidenceImages.map((imgUri, index) => (
+                <View key={index} style={styles.evidenceThumbBox}>
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={() => setPreviewPhoto(imgUri)}
+                    style={{ flex: 1 }}
+                  >
+                    <Image source={{ uri: imgUri }} style={styles.evidenceThumbImg} resizeMode="cover" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.evidenceDeleteBtn}
+                    onPress={() => handleRemoveEvidence(index)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Text style={styles.evidenceDeleteText}>✕</Text>
+                  </TouchableOpacity>
+                  <View style={styles.evidenceIndexBadge}>
+                    <Text style={styles.evidenceIndexText}>#{index + 1}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.emptyEvidenceBox}>
+              <Text style={{ fontSize: 28, marginBottom: 6 }}>📷</Text>
+              <Text style={styles.emptyEvidenceTitle}>No Evidence Photos Uploaded</Text>
+              <Text style={styles.emptyEvidenceSub}>
+                Tap below to choose prize distribution & podium moments from your phone gallery.
+              </Text>
+            </View>
+          )}
+
+          {/* Action Row */}
+          {evidenceImages.length < 10 ? (
+            <TouchableOpacity
+              style={styles.addEvidenceBtn}
+              onPress={handlePickEvidence}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.addEvidenceBtnIcon}>🖼️</Text>
+              <Text style={styles.addEvidenceBtnText}>
+                Select Photos from Gallery ({10 - evidenceImages.length} slots left)
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.maxPhotosBox}>
+              <Text style={styles.maxPhotosNotice}>✓ Maximum 10 evidence photos uploaded</Text>
+            </View>
+          )}
+
+          {/* Optional Direct URL Row */}
+          {evidenceImages.length < 10 && (
+            <View style={styles.urlInputRow}>
+              <TextInput
+                style={styles.urlTextInput}
+                placeholder="Or paste direct image URL (https://...)"
+                placeholderTextColor="#94A3B8"
+                value={imageUrlInput}
+                onChangeText={setImageUrlInput}
+                autoCapitalize="none"
+              />
+              <TouchableOpacity
+                style={[styles.addUrlBtn, !imageUrlInput.trim() && styles.addUrlBtnDisabled]}
+                onPress={handleAddImageUrl}
+                disabled={!imageUrlInput.trim()}
+              >
+                <Text style={styles.addUrlBtnText}>+ Add</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </Card>
+
         {/* Mark as Completed Toggle Card */}
         <TouchableOpacity
           style={styles.completedToggleCard}
@@ -409,6 +585,27 @@ const AdminEventWinnersScreen: React.FC<Props> = ({ route, navigation }) => {
           style={{ marginTop: spacing.md, marginBottom: spacing.xl }}
         />
       </ScrollView>
+
+      {/* Fullscreen Photo Lightbox Modal */}
+      <Modal
+        visible={!!previewPhoto}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setPreviewPhoto(null)}
+      >
+        <View style={styles.modalBackdrop}>
+          <TouchableOpacity
+            style={styles.modalCloseBtn}
+            onPress={() => setPreviewPhoto(null)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.modalCloseText}>✕ Close</Text>
+          </TouchableOpacity>
+          {previewPhoto && (
+            <Image source={{ uri: previewPhoto }} style={styles.modalFullImage} resizeMode="contain" />
+          )}
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 };
@@ -583,6 +780,218 @@ const styles = StyleSheet.create({
     color: '#047857',
     marginTop: 2,
     lineHeight: 16,
+  },
+  /* Evidence Card Styles */
+  cardHeader: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#334155',
+    letterSpacing: 0.8,
+  },
+  evidenceCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  evidenceHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  evidenceSub: {
+    fontSize: 11.5,
+    color: '#64748B',
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  photoCountBadge: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  photoCountBadgeActive: {
+    backgroundColor: '#E0F2FE',
+    borderColor: '#0284C7',
+  },
+  photoCountText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#64748B',
+  },
+  photoCountTextActive: {
+    color: '#0369A1',
+  },
+  evidenceGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  evidenceThumbBox: {
+    width: '31%',
+    aspectRatio: 1,
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    position: 'relative',
+    backgroundColor: '#0F172A',
+  },
+  evidenceThumbImg: {
+    width: '100%',
+    height: '100%',
+  },
+  evidenceDeleteBtn: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: 'rgba(239, 68, 68, 0.9)',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  evidenceDeleteText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  evidenceIndexBadge: {
+    position: 'absolute',
+    bottom: 4,
+    left: 4,
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  evidenceIndexText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '700',
+  },
+  emptyEvidenceBox: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    padding: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  emptyEvidenceTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  emptyEvidenceSub: {
+    fontSize: 11,
+    color: '#64748B',
+    textAlign: 'center',
+    marginTop: 2,
+    maxWidth: 260,
+  },
+  addEvidenceBtn: {
+    backgroundColor: '#F0F9FB',
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: '#0E526B',
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    marginBottom: 10,
+  },
+  addEvidenceBtnIcon: {
+    fontSize: 18,
+    marginRight: 6,
+  },
+  addEvidenceBtnText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#0E526B',
+  },
+  maxPhotosBox: {
+    backgroundColor: '#ECFDF5',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  maxPhotosNotice: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#065F46',
+  },
+  urlInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  urlTextInput: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    fontSize: 12,
+    color: '#0F172A',
+  },
+  addUrlBtn: {
+    backgroundColor: '#0E526B',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  addUrlBtnDisabled: {
+    backgroundColor: '#94A3B8',
+  },
+  addUrlBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11.5,
+    fontWeight: '700',
+  },
+  /* Lightbox Modal */
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.92)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  modalCloseBtn: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    zIndex: 10,
+  },
+  modalCloseText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 14,
+  },
+  modalFullImage: {
+    width: '100%',
+    height: '80%',
   },
 });
 

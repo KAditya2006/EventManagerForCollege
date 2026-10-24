@@ -27,6 +27,7 @@ export interface IEvent extends Document {
   category?: string;
   capacity?: number;
   poster?: string;
+  evidenceImages?: string[];
   status: EventStatus;
   winners?: IWinner[];
   winnersAnnouncedAt?: Date;
@@ -48,6 +49,14 @@ const eventSchema = new Schema(
     category: { type: String },
     capacity: { type: Number },
     poster: { type: String },
+    evidenceImages: {
+      type: [String],
+      default: [],
+      validate: [
+        (val: string[]) => val.length <= 10,
+        'Maximum 10 evidence images allowed per event.',
+      ],
+    },
     status: {
       type: String,
       enum: Object.values(EventStatus),

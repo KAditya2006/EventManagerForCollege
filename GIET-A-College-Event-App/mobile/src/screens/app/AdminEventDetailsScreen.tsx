@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, Image, Modal, TouchableOpacity } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { AdminStackParamList } from '../../navigation/AdminNavigator';
@@ -26,6 +26,7 @@ const AdminEventDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
   const fetchDetails = async () => {
     try {
@@ -52,6 +53,30 @@ const AdminEventDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   );
 
   const handleStatusChange = (newStatus: string, confirmMessage: string) => {
+    if (newStatus === 'COMPLETED') {
+      const hasWinners = event && event.winners && event.winners.length > 0;
+      const hasEvidence = event && event.evidenceImages && event.evidenceImages.length > 0;
+
+      if (!hasWinners || !hasEvidence) {
+        const missingItems: string[] = [];
+        if (!hasWinners) missingItems.push('🏆 Declare Event Winners (1st, 2nd, 3rd)');
+        if (!hasEvidence) missingItems.push('📸 Upload at least 1 Prize Distribution / Evidence Photo');
+
+        Alert.alert(
+          'Completion Checklist Incomplete',
+          `An event can only be marked as COMPLETED after:\n\n${missingItems.map((item, idx) => `${idx + 1}. ${item}`).join('\n')}\n\nWould you like to open the Winners & Evidence manager now?`,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Open Manager',
+              onPress: () => navigation.navigate('AdminEventWinners', { eventId: event!._id, eventTitle: event!.title }),
+            },
+          ]
+        );
+        return;
+      }
+    }
+
     Alert.alert(
       'Confirm Lifecycle Change',
       confirmMessage,
@@ -276,6 +301,42 @@ const AdminEventDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
         </Card>
       )}
 
+      {/* Event Evidence & Prize Distribution Photos */}
+      {event.evidenceImages && event.evidenceImages.length > 0 && (
+        <Card style={styles.evidenceCard}>
+          <View style={styles.evidenceHeaderRow}>
+            <View style={{ flex: 1, marginRight: 8 }}>
+              <Text style={styles.cardHeader}>📸 EVENT & PRIZE DISTRIBUTION EVIDENCE</Text>
+              <Text style={styles.evidenceSubText}>
+                {event.evidenceImages.length} official proof photo{event.evidenceImages.length > 1 ? 's' : ''} uploaded
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.manageEvidenceBtn}
+              onPress={() => navigation.navigate('AdminEventWinners', { eventId: event._id, eventTitle: event.title })}
+            >
+              <Text style={styles.manageEvidenceBtnText}>⚙️ Manage</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.evidenceGrid}>
+            {event.evidenceImages.map((imgUri: string, idx: number) => (
+              <TouchableOpacity
+                key={idx}
+                style={styles.evidenceThumbBox}
+                activeOpacity={0.85}
+                onPress={() => setSelectedPhoto(imgUri)}
+              >
+                <Image source={{ uri: imgUri }} style={styles.evidenceThumbImg} resizeMode="cover" />
+                <View style={styles.evidenceBadge}>
+                  <Text style={styles.evidenceBadgeText}>#{idx + 1}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </Card>
+      )}
+
       {/* Operational Actions */}
       <Card style={styles.actionsCard}>
         <Text style={styles.cardHeader}>OPERATIONAL ACTIONS</Text>
@@ -294,9 +355,13 @@ const AdminEventDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           style={styles.actionBtn}
         />
 
-        {/* Manage / Declare Winners */}
+        {/* Manage / Declare Winners & Upload Evidence */}
         <Button 
-          title={event.winners && event.winners.length > 0 ? "🏆 Update Event Winners" : "🏆 Declare Event Winners (1st, 2nd, 3rd)"}
+          title={
+            event.winners && event.winners.length > 0 
+              ? "🏆 Manage Winners & Prize Evidence" 
+              : "🏆 Declare Winners & Add Prize Evidence"
+          }
           onPress={() => navigation.navigate('AdminEventWinners', { eventId: event._id, eventTitle: event.title })}
           disabled={actionLoading}
           variant="secondary"
@@ -408,6 +473,27 @@ const AdminEventDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           />
         )}
       </Card>
+
+      {/* Fullscreen Photo Lightbox Modal */}
+      <Modal
+        visible={!!selectedPhoto}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setSelectedPhoto(null)}
+      >
+        <View style={styles.modalBackdrop}>
+          <TouchableOpacity
+            style={styles.modalCloseBtn}
+            onPress={() => setSelectedPhoto(null)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.modalCloseText}>✕ Close</Text>
+          </TouchableOpacity>
+          {selectedPhoto && (
+            <Image source={{ uri: selectedPhoto }} style={styles.modalFullImage} resizeMode="contain" />
+          )}
+        </View>
+      </Modal>
     </ScrollView>
   );
 };
@@ -639,6 +725,95 @@ const styles = StyleSheet.create({
   adminPosterImage: {
     width: '100%',
     height: 200,
+  },
+  /* Evidence Gallery Styles */
+  evidenceCard: {
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  evidenceHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacing.md,
+  },
+  evidenceSubText: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  manageEvidenceBtn: {
+    backgroundColor: '#F0F9FB',
+    borderWidth: 1,
+    borderColor: '#0E526B',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radii.sm,
+  },
+  manageEvidenceBtnText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#0E526B',
+  },
+  evidenceGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  evidenceThumbBox: {
+    width: '31%',
+    aspectRatio: 1,
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    position: 'relative',
+    backgroundColor: '#0F172A',
+  },
+  evidenceThumbImg: {
+    width: '100%',
+    height: '100%',
+  },
+  evidenceBadge: {
+    position: 'absolute',
+    bottom: 4,
+    left: 4,
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  evidenceBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '700',
+  },
+  /* Lightbox Modal */
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.92)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  modalCloseBtn: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    zIndex: 10,
+  },
+  modalCloseText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 14,
+  },
+  modalFullImage: {
+    width: '100%',
+    height: '80%',
   },
 });
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, Platform, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, Platform, Image, Modal, TouchableOpacity } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { StudentStackParamList } from '../../navigation/StudentNavigator';
@@ -19,6 +19,7 @@ const EventDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [registering, setRegistering] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
   const fetchEventDetails = async () => {
     try {
@@ -254,6 +255,37 @@ const EventDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             </Card>
           )}
 
+          {/* Event Evidence & Prize Distribution Photos Gallery */}
+          {event.evidenceImages && event.evidenceImages.length > 0 && (
+            <Card style={styles.evidenceCard}>
+              <View style={styles.evidenceHeaderRow}>
+                <Text style={{ fontSize: 20, marginRight: 8 }}>📸</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.evidenceHeaderTitle}>Event Highlights & Evidence</Text>
+                  <Text style={styles.evidenceHeaderSub}>
+                    {event.evidenceImages.length} Official Event Photo{event.evidenceImages.length > 1 ? 's' : ''}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.evidenceGrid}>
+                {event.evidenceImages.map((imgUri: string, idx: number) => (
+                  <TouchableOpacity
+                    key={idx}
+                    style={styles.evidenceThumbBox}
+                    activeOpacity={0.85}
+                    onPress={() => setSelectedPhoto(imgUri)}
+                  >
+                    <Image source={{ uri: imgUri }} style={styles.evidenceThumbImg} resizeMode="cover" />
+                    <View style={styles.evidenceBadge}>
+                      <Text style={styles.evidenceBadgeText}>#{idx + 1}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </Card>
+          )}
+
           {/* About Event Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>About the Event</Text>
@@ -298,6 +330,27 @@ const EventDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           />
         )}
       </View>
+
+      {/* Fullscreen Photo Lightbox Modal */}
+      <Modal
+        visible={!!selectedPhoto}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setSelectedPhoto(null)}
+      >
+        <View style={styles.modalBackdrop}>
+          <TouchableOpacity
+            style={styles.modalCloseBtn}
+            onPress={() => setSelectedPhoto(null)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.modalCloseText}>✕ Close</Text>
+          </TouchableOpacity>
+          {selectedPhoto && (
+            <Image source={{ uri: selectedPhoto }} style={styles.modalFullImage} resizeMode="contain" />
+          )}
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -523,6 +576,85 @@ const styles = StyleSheet.create({
   posterHeroImage: {
     width: '100%',
     height: '100%',
+  },
+  /* Evidence Gallery Styles */
+  evidenceCard: {
+    padding: spacing.lg,
+    marginBottom: spacing.xl,
+  },
+  evidenceHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  evidenceHeaderTitle: {
+    ...typography.titleSmall,
+    color: colors.textPrimary,
+  },
+  evidenceHeaderSub: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  evidenceGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  evidenceThumbBox: {
+    width: '31%',
+    aspectRatio: 1,
+    borderRadius: radii.sm,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    position: 'relative',
+    backgroundColor: '#0F172A',
+  },
+  evidenceThumbImg: {
+    width: '100%',
+    height: '100%',
+  },
+  evidenceBadge: {
+    position: 'absolute',
+    bottom: 4,
+    left: 4,
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  evidenceBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '700',
+  },
+  /* Lightbox Modal */
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.92)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  modalCloseBtn: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    zIndex: 10,
+  },
+  modalCloseText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 14,
+  },
+  modalFullImage: {
+    width: '100%',
+    height: '80%',
   },
 });
 

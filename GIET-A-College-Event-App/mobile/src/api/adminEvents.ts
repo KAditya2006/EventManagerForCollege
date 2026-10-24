@@ -31,8 +31,18 @@ export const getEventParticipants = async (eventId: string) => {
   return response.data;
 };
 
-export const updateEventWinners = async (eventId: string, winners: any[], markAsCompleted = false) => {
-  const response = await api.put(`/admin/events/${eventId}/winners`, { winners, markAsCompleted });
+export const updateEventWinners = async (
+  eventId: string, 
+  winners: any[], 
+  markAsCompleted = false,
+  evidenceImages?: string[]
+) => {
+  const response = await api.put(`/admin/events/${eventId}/winners`, { winners, markAsCompleted, evidenceImages });
+  return response.data;
+};
+
+export const updateEventEvidence = async (eventId: string, evidenceImages: string[]) => {
+  const response = await api.put(`/admin/events/${eventId}/evidence`, { evidenceImages });
   return response.data;
 };
 

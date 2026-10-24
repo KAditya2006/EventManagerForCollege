@@ -24,6 +24,7 @@ export interface Event {
   status: 'DRAFT' | 'PUBLISHED' | 'COMPLETED' | 'CANCELLED';
   winners?: EventWinner[];
   winnersAnnouncedAt?: string;
+  evidenceImages?: string[];
   completedAt?: string;
   registrationCount?: number;
   createdAt: string;

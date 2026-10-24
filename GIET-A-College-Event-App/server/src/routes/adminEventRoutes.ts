@@ -10,6 +10,7 @@ import {
   checkInStudent,
   getEventParticipants,
   updateEventWinners,
+  updateEventEvidence,
   getAppUsers,
   getAdminDashboardSummary
 } from '../controllers/adminEventController';
@@ -47,6 +48,10 @@ router.get('/:eventId/participants', getEventParticipants);
 // Winners Management
 router.put('/events/:eventId/winners', updateEventWinners);
 router.put('/:eventId/winners', updateEventWinners);
+
+// Evidence & Prize Distribution Photos Management
+router.put('/events/:eventId/evidence', updateEventEvidence);
+router.put('/:eventId/evidence', updateEventEvidence);
 
 // Attendance Gate Scanning
 router.post('/events/:eventId/check-in', checkInStudent);

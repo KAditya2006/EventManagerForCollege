@@ -136,6 +136,12 @@ export const updateEvent = async (req: Request, res: Response) => {
     if (organizer) event.organizer = organizer;
     if (category !== undefined) event.category = category;
     if (poster !== undefined) event.poster = poster;
+    if (req.body.evidenceImages !== undefined && Array.isArray(req.body.evidenceImages)) {
+      if (req.body.evidenceImages.length > 10) {
+        return res.status(400).json({ success: false, error: { message: 'Maximum 10 evidence images allowed per event' } });
+      }
+      event.evidenceImages = req.body.evidenceImages;
+    }
 
     if (capacity !== undefined) {
       // Basic capacity check: Don't reduce below existing registrations if possible
@@ -188,6 +194,24 @@ export const updateEventStatus = async (req: Request, res: Response) => {
       // Basic logic: start time < end time (simple string compare for HH:MM if format is standard, but we skip complex string parsing and rely on valid input for now. capacity > 0)
       if (event.capacity !== undefined && event.capacity <= 0) {
         return res.status(400).json({ success: false, error: { message: 'Cannot publish event: capacity must be greater than 0' } });
+      }
+    }
+
+    // Completion validation: Must have declared winners AND uploaded at least 1 evidence photo
+    if (status === EventStatus.COMPLETED) {
+      const hasWinners = event.winners && event.winners.length > 0;
+      const hasEvidence = event.evidenceImages && event.evidenceImages.length > 0;
+
+      if (!hasWinners || !hasEvidence) {
+        let msg = 'Cannot mark event as COMPLETED: ';
+        if (!hasWinners && !hasEvidence) {
+          msg += 'Please declare the official event winners (1st, 2nd, 3rd) and upload at least 1 prize distribution / event evidence photo first.';
+        } else if (!hasWinners) {
+          msg += 'Please declare the official event winners (1st, 2nd, 3rd) first.';
+        } else {
+          msg += 'Please upload at least 1 prize distribution or event evidence photo first.';
+        }
+        return res.status(400).json({ success: false, error: { message: msg } });
       }
     }
 
@@ -368,7 +392,7 @@ export const getEventParticipants = async (req: Request, res: Response) => {
 export const updateEventWinners = async (req: Request, res: Response) => {
   try {
     const { eventId } = req.params;
-    const { winners, markAsCompleted } = req.body;
+    const { winners, markAsCompleted, evidenceImages } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(eventId as string)) {
       return res.status(400).json({ success: false, error: { message: 'Invalid event ID' } });
@@ -383,12 +407,39 @@ export const updateEventWinners = async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, error: { message: 'Event not found' } });
     }
 
+    if (evidenceImages !== undefined) {
+      if (!Array.isArray(evidenceImages)) {
+        return res.status(400).json({ success: false, error: { message: 'evidenceImages must be an array' } });
+      }
+      if (evidenceImages.length > 10) {
+        return res.status(400).json({ success: false, error: { message: 'Maximum 10 evidence images allowed per event' } });
+      }
+      event.evidenceImages = evidenceImages;
+    }
+
     event.winners = winners;
     event.winnersAnnouncedAt = new Date();
+
     if (markAsCompleted) {
+      const hasWinners = event.winners && event.winners.length > 0;
+      const hasEvidence = event.evidenceImages && event.evidenceImages.length > 0;
+
+      if (!hasWinners || !hasEvidence) {
+        let msg = 'Cannot mark event as COMPLETED: ';
+        if (!hasWinners && !hasEvidence) {
+          msg += 'Please specify at least 1st place winner and upload at least 1 prize distribution / event evidence photo.';
+        } else if (!hasWinners) {
+          msg += 'Please specify at least 1st place winner.';
+        } else {
+          msg += 'Please upload at least 1 prize distribution / event evidence photo.';
+        }
+        return res.status(400).json({ success: false, error: { message: msg } });
+      }
+
       event.status = EventStatus.COMPLETED;
       event.completedAt = new Date();
     }
+
     await event.save();
 
     // Broadcast announcement notification to all registered students of this event
@@ -398,7 +449,7 @@ export const updateEventWinners = async (req: Request, res: Response) => {
         recipient: reg.student.toString(),
         type: NotificationType.WINNERS_ANNOUNCED,
         title: `🏆 Winners Declared: ${event.title}`,
-        message: `Results have been officially announced for ${event.title}! Open the event to view the winners leaderboard.`,
+        message: `Results have been officially announced for ${event.title}! Open the event to view the winners leaderboard and prize distribution photos.`,
         event: event._id.toString(),
       }).catch((e) => console.warn('[AdminEventController] Notification error:', e.message));
     }
@@ -410,6 +461,45 @@ export const updateEventWinners = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('[AdminEventController] updateEventWinners error:', error);
     return res.status(500).json({ success: false, error: { message: 'Failed to update event winners' } });
+  }
+};
+
+/**
+ * Update event evidence & prize distribution photos (Max 10)
+ * PUT /api/admin/events/:eventId/evidence
+ */
+export const updateEventEvidence = async (req: Request, res: Response) => {
+  try {
+    const { eventId } = req.params;
+    const { evidenceImages } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(eventId as string)) {
+      return res.status(400).json({ success: false, error: { message: 'Invalid event ID' } });
+    }
+
+    if (!Array.isArray(evidenceImages)) {
+      return res.status(400).json({ success: false, error: { message: 'evidenceImages must be an array of image strings' } });
+    }
+
+    if (evidenceImages.length > 10) {
+      return res.status(400).json({ success: false, error: { message: 'Maximum 10 evidence images allowed per event' } });
+    }
+
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ success: false, error: { message: 'Event not found' } });
+    }
+
+    event.evidenceImages = evidenceImages;
+    await event.save();
+
+    return res.status(200).json({
+      success: true,
+      data: event,
+    });
+  } catch (error) {
+    console.error('[AdminEventController] updateEventEvidence error:', error);
+    return res.status(500).json({ success: false, error: { message: 'Failed to update event evidence images' } });
   }
 };
 

@@ -273,6 +273,60 @@ export const handleEventLandingPage = async (req: Request, res: Response) => {
       padding-top: 14px;
       border-top: 1px solid #334155;
     }
+    .winners-box {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 24px;
+    }
+    .winners-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #fbbf24;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 10px;
+    }
+    .winner-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 13px;
+      color: #f8fafc;
+    }
+    .winner-rank {
+      font-size: 18px;
+      margin-right: 8px;
+    }
+    .evidence-box {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid #334155;
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 24px;
+    }
+    .evidence-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #38bdf8;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 10px;
+    }
+    .evidence-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 8px;
+    }
+    .evidence-img {
+      width: 100%;
+      height: 90px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      cursor: pointer;
+    }
   </style>
 
   <script>
@@ -355,6 +409,37 @@ export const handleEventLandingPage = async (req: Request, res: Response) => {
           ${escapeHtml(event.description)}
         </div>
       </div>
+
+      ${event.winners && event.winners.length > 0 ? `
+      <!-- Official Event Winners -->
+      <div class="winners-box">
+        <div class="winners-title">🏆 Official Event Winners</div>
+        ${event.winners.map((w: any) => `
+        <div class="winner-row">
+          <span class="winner-rank">${w.position === 1 ? '🥇' : w.position === 2 ? '🥈' : '🥉'}</span>
+          <div>
+            <strong>${w.position === 1 ? '1st Place' : w.position === 2 ? '2nd Place' : '3rd Place'}:</strong>
+            ${escapeHtml(w.name)} ${w.branch ? `(${escapeHtml(w.branch)})` : ''}
+            ${w.prize ? `<span style="color: #fbbf24; font-size: 11px;"> • ${escapeHtml(w.prize)}</span>` : ''}
+          </div>
+        </div>
+        `).join('')}
+      </div>
+      ` : ''}
+
+      ${event.evidenceImages && event.evidenceImages.length > 0 ? `
+      <!-- Event Evidence & Prize Distribution Photos -->
+      <div class="evidence-box">
+        <div class="evidence-title">📸 Event Highlights & Prize Distribution (${event.evidenceImages.length} Photos)</div>
+        <div class="evidence-grid">
+          ${event.evidenceImages.map((imgUrl: string) => `
+          <a href="${escapeHtml(imgUrl)}" target="_blank" rel="noopener noreferrer">
+            <img src="${escapeHtml(imgUrl)}" alt="Event Photo" class="evidence-img" />
+          </a>
+          `).join('')}
+        </div>
+      </div>
+      ` : ''}
 
       <!-- 3-Step Guided Workflow -->
       <div class="steps-card">
