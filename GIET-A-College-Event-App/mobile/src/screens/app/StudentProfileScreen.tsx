@@ -98,7 +98,11 @@ const StudentProfileScreen: React.FC = () => {
         <View style={styles.divider} />
 
         <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Reg. / Roll No.</Text>
+          <Text style={styles.infoLabel}>
+            {profileData?.idType === 'ROLL_NUMBER' || (profileData?.rollNumber && profileData.rollNumber.length === 6)
+              ? 'Roll No. (6 Digits)'
+              : 'Reg. No. (10 Digits)'}
+          </Text>
           <Text style={[styles.infoValue, { fontWeight: '700', color: colors.primary }]}>
             {profileData?.rollNumber || '—'}
           </Text>

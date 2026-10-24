@@ -36,6 +36,7 @@ router.get('/me', authenticate, async (req, res) => {
         email: user.email,
         name: user.name,
         rollNumber: user.rollNumber,
+        idType: user.idType,
         phone: user.phone,
         course: user.course,
         branch: user.branch,

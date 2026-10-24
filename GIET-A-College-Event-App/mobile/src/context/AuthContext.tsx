@@ -12,6 +12,7 @@ export interface User {
   isNewUser?: boolean;
   name?: string;
   rollNumber?: string;
+  idType?: 'ROLL_NUMBER' | 'REG_NUMBER';
   phone?: string;
   course?: string;
   branch?: string;

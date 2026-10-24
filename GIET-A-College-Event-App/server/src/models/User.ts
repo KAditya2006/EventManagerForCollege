@@ -9,6 +9,7 @@ export interface IUser extends Document {
   email: string;
   name?: string;
   rollNumber?: string;
+  idType?: 'ROLL_NUMBER' | 'REG_NUMBER';
   phone?: string;
   course?: string;
   branch?: string;
@@ -37,6 +38,11 @@ const UserSchema = new Schema<IUser>(
     rollNumber: {
       type: String,
       trim: true,
+    },
+    idType: {
+      type: String,
+      enum: ['ROLL_NUMBER', 'REG_NUMBER'],
+      default: 'REG_NUMBER',
     },
     phone: {
       type: String,

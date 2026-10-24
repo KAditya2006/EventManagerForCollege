@@ -185,6 +185,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
           email: user.email,
           name: user.name,
           rollNumber: user.rollNumber,
+          idType: user.idType,
           phone: user.phone,
           course: user.course,
           branch: user.branch,
@@ -205,7 +206,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
 
 export const completeProfile = async (req: Request, res: Response) => {
   try {
-    const { name, rollNumber, phone, course, branch, year, semester, section } = req.body;
+    const { name, rollNumber, idType, phone, course, branch, year, semester, section } = req.body;
     const userId = (req as any).user.id;
 
     if (!name?.trim()) {
@@ -217,7 +218,23 @@ export const completeProfile = async (req: Request, res: Response) => {
       profileCompleted: true,
     };
 
-    if (rollNumber) updateFields.rollNumber = rollNumber.trim();
+    if (rollNumber) {
+      const cleanRoll = rollNumber.toString().trim();
+      const targetIdType = idType === 'ROLL_NUMBER' ? 'ROLL_NUMBER' : (idType === 'REG_NUMBER' ? 'REG_NUMBER' : (/^\d{6}$/.test(cleanRoll) ? 'ROLL_NUMBER' : 'REG_NUMBER'));
+
+      if (targetIdType === 'ROLL_NUMBER') {
+        if (!/^\d{6}$/.test(cleanRoll)) {
+          return res.status(400).json({ success: false, error: { message: 'Roll number must be exactly 6 digits' } });
+        }
+      } else {
+        if (!/^\d{10}$/.test(cleanRoll)) {
+          return res.status(400).json({ success: false, error: { message: 'Registration number must be exactly 10 digits' } });
+        }
+      }
+
+      updateFields.rollNumber = cleanRoll;
+      updateFields.idType = targetIdType;
+    }
     if (phone) updateFields.phone = phone.trim();
     if (course) updateFields.course = course.trim();
     if (branch) updateFields.branch = branch.trim();
@@ -261,6 +278,7 @@ export const completeProfile = async (req: Request, res: Response) => {
         email: user.email,
         name: user.name,
         rollNumber: user.rollNumber,
+        idType: user.idType,
         phone: user.phone,
         course: user.course,
         branch: user.branch,

@@ -18,6 +18,7 @@ export const fetchCurrentUser = async () => {
 export interface CompleteProfileData {
   name: string;
   rollNumber: string;
+  idType?: 'ROLL_NUMBER' | 'REG_NUMBER';
   phone: string;
   course: string;
   branch: string;

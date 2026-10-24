@@ -80,11 +80,13 @@ const SEMESTERS: PickerOption[] = [
 ];
 
 type ModalType = 'course' | 'branch' | 'year' | 'semester' | null;
+type IdType = 'ROLL_NUMBER' | 'REG_NUMBER';
 
 const CompleteProfileScreen: React.FC<Props> = () => {
   const { user, updateUser } = useAuth();
 
   const [name, setName] = useState('');
+  const [idType, setIdType] = useState<IdType>('REG_NUMBER');
   const [rollNumber, setRollNumber] = useState('');
   const [phone, setPhone] = useState('');
   const [course, setCourse] = useState('');
@@ -107,9 +109,14 @@ const CompleteProfileScreen: React.FC<Props> = () => {
     }
 
     if (!rollNumber.trim()) {
-      errs.rollNumber = 'Registration / Roll No. is required';
-    } else if (rollNumber.trim().length < 4) {
-      errs.rollNumber = 'Enter a valid Roll / Reg. number';
+      errs.rollNumber =
+        idType === 'ROLL_NUMBER'
+          ? 'Roll number is required (6 digits)'
+          : 'Registration number is required (10 digits)';
+    } else if (idType === 'ROLL_NUMBER' && !/^\d{6}$/.test(rollNumber.trim())) {
+      errs.rollNumber = `Roll number must be exactly 6 digits (currently ${rollNumber.trim().length})`;
+    } else if (idType === 'REG_NUMBER' && !/^\d{10}$/.test(rollNumber.trim())) {
+      errs.rollNumber = `Registration number must be exactly 10 digits (currently ${rollNumber.trim().length})`;
     }
 
     if (!phone.trim()) {
@@ -151,7 +158,8 @@ const CompleteProfileScreen: React.FC<Props> = () => {
     try {
       const response = await completeProfile({
         name: name.trim(),
-        rollNumber: rollNumber.trim().toUpperCase(),
+        rollNumber: rollNumber.trim(),
+        idType,
         phone: phone.trim(),
         course: course.trim(),
         branch: effectiveBranch,
@@ -346,25 +354,134 @@ const CompleteProfileScreen: React.FC<Props> = () => {
               {errors.name ? <Text style={styles.errorText}>{errors.name}</Text> : null}
             </View>
 
-            {/* Roll Number / Reg. No */}
+            {/* Roll Number (6 Digits) vs Registration Number (10 Digits) */}
             <View style={styles.fieldWrapper}>
-              <Text style={styles.label}>College Reg. No. / Roll No. <Text style={styles.requiredStar}>*</Text></Text>
+              <View style={styles.labelRow}>
+                <Text style={styles.label}>
+                  {idType === 'ROLL_NUMBER' ? 'College Roll Number' : 'University Registration Number'} <Text style={styles.requiredStar}>*</Text>
+                </Text>
+                <View style={styles.digitBadge}>
+                  <Text style={styles.digitBadgeText}>
+                    {idType === 'ROLL_NUMBER' ? '6 Digits' : '10 Digits'}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Segmented Selector */}
+              <View style={styles.idTypeSelector}>
+                <TouchableOpacity
+                  style={[
+                    styles.idTypeTab,
+                    idType === 'ROLL_NUMBER' && styles.idTypeTabActive,
+                  ]}
+                  onPress={() => {
+                    setIdType('ROLL_NUMBER');
+                    const clean = rollNumber.replace(/[^0-9]/g, '').slice(0, 6);
+                    setRollNumber(clean);
+                    if (errors.rollNumber) setErrors((prev) => ({ ...prev, rollNumber: '' }));
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.radioCircle, idType === 'ROLL_NUMBER' && styles.radioCircleActive]}>
+                    {idType === 'ROLL_NUMBER' && <View style={styles.radioDot} />}
+                  </View>
+                  <View style={styles.idTypeTabTextWrapper}>
+                    <Text
+                      style={[
+                        styles.idTypeTabTitle,
+                        idType === 'ROLL_NUMBER' && styles.idTypeTabTitleActive,
+                      ]}
+                    >
+                      Roll Number
+                    </Text>
+                    <Text
+                      style={[
+                        styles.idTypeTabSub,
+                        idType === 'ROLL_NUMBER' && styles.idTypeTabSubActive,
+                      ]}
+                    >
+                      6 Digits
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.idTypeTab,
+                    idType === 'REG_NUMBER' && styles.idTypeTabActive,
+                  ]}
+                  onPress={() => {
+                    setIdType('REG_NUMBER');
+                    const clean = rollNumber.replace(/[^0-9]/g, '').slice(0, 10);
+                    setRollNumber(clean);
+                    if (errors.rollNumber) setErrors((prev) => ({ ...prev, rollNumber: '' }));
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.radioCircle, idType === 'REG_NUMBER' && styles.radioCircleActive]}>
+                    {idType === 'REG_NUMBER' && <View style={styles.radioDot} />}
+                  </View>
+                  <View style={styles.idTypeTabTextWrapper}>
+                    <Text
+                      style={[
+                        styles.idTypeTabTitle,
+                        idType === 'REG_NUMBER' && styles.idTypeTabTitleActive,
+                      ]}
+                    >
+                      Registration No.
+                    </Text>
+                    <Text
+                      style={[
+                        styles.idTypeTabSub,
+                        idType === 'REG_NUMBER' && styles.idTypeTabSubActive,
+                      ]}
+                    >
+                      10 Digits
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+              {/* Input Box with Character Counter */}
               <View style={[styles.inputBox, errors.rollNumber && styles.inputBoxError]}>
                 <IdCardIcon size={18} color="#64748B" />
                 <TextInput
                   style={styles.inputField}
-                  placeholder="e.g., 2401326385"
+                  placeholder={
+                    idType === 'ROLL_NUMBER'
+                      ? 'Enter 6-digit roll number (e.g., 210123)'
+                      : 'Enter 10-digit reg. number (e.g., 2401326385)'
+                  }
                   placeholderTextColor="#94A3B8"
                   value={rollNumber}
+                  maxLength={idType === 'ROLL_NUMBER' ? 6 : 10}
+                  keyboardType="number-pad"
                   onChangeText={(text) => {
-                    setRollNumber(text);
+                    const cleaned = text.replace(/[^0-9]/g, '');
+                    const max = idType === 'ROLL_NUMBER' ? 6 : 10;
+                    setRollNumber(cleaned.slice(0, max));
                     if (errors.rollNumber) setErrors((prev) => ({ ...prev, rollNumber: '' }));
                   }}
-                  autoCapitalize="characters"
                   editable={!loading}
                 />
+                {rollNumber.length > 0 && (
+                  <View style={styles.countBadge}>
+                    <Text
+                      style={[
+                        styles.countBadgeText,
+                        rollNumber.length === (idType === 'ROLL_NUMBER' ? 6 : 10) && styles.countBadgeTextFull,
+                      ]}
+                    >
+                      {rollNumber.length}/{idType === 'ROLL_NUMBER' ? 6 : 10}
+                    </Text>
+                  </View>
+                )}
               </View>
-              <Text style={styles.helperText}>Used to verify identity on QR event check-in passes.</Text>
+              <Text style={styles.helperText}>
+                {idType === 'ROLL_NUMBER'
+                  ? 'College class roll number must be exactly 6 digits.'
+                  : 'University registration number must be exactly 10 digits.'}
+              </Text>
               {errors.rollNumber ? <Text style={styles.errorText}>{errors.rollNumber}</Text> : null}
             </View>
 
@@ -666,6 +783,110 @@ const styles = StyleSheet.create({
   /* Fields */
   fieldWrapper: {
     marginBottom: 14,
+  },
+  labelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  digitBadge: {
+    backgroundColor: '#E6F4F8',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#BCE3EC',
+  },
+  digitBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0E526B',
+  },
+  idTypeSelector: {
+    flexDirection: 'row',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 10,
+    gap: 6,
+  },
+  idTypeTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+  },
+  idTypeTabActive: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#0E526B',
+    shadowColor: '#0E526B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  radioCircle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: '#94A3B8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  radioCircleActive: {
+    borderColor: '#0E526B',
+  },
+  radioDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#0E526B',
+  },
+  idTypeTabTextWrapper: {
+    flex: 1,
+  },
+  idTypeTabTitle: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  idTypeTabTitleActive: {
+    color: '#0E526B',
+    fontWeight: '700',
+  },
+  idTypeTabSub: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 1,
+    fontWeight: '500',
+  },
+  idTypeTabSubActive: {
+    color: '#187393',
+    fontWeight: '600',
+  },
+  countBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 6,
+    marginLeft: 6,
+  },
+  countBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  countBadgeTextFull: {
+    color: '#059669',
+    fontWeight: '700',
   },
   label: {
     fontSize: 12.5,

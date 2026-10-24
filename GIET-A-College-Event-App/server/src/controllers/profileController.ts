@@ -30,12 +30,28 @@ export const updateProfile = async (req: Request, res: Response) => {
     }
 
     // Extract allowed student profile fields
-    const { name, rollNumber, phone, course, branch, year, semester, section } = req.body;
+    const { name, rollNumber, idType, phone, course, branch, year, semester, section } = req.body;
     
     // Explicitly prevent role updates or other sensitive fields
     const updateData: any = {};
     if (name !== undefined) updateData.name = name;
-    if (rollNumber !== undefined) updateData.rollNumber = rollNumber;
+    if (rollNumber !== undefined) {
+      const cleanRoll = rollNumber.toString().trim();
+      const targetIdType = idType === 'ROLL_NUMBER' ? 'ROLL_NUMBER' : (idType === 'REG_NUMBER' ? 'REG_NUMBER' : (/^\d{6}$/.test(cleanRoll) ? 'ROLL_NUMBER' : 'REG_NUMBER'));
+
+      if (targetIdType === 'ROLL_NUMBER') {
+        if (!/^\d{6}$/.test(cleanRoll)) {
+          return res.status(400).json({ success: false, error: { message: 'Roll number must be exactly 6 digits' } });
+        }
+      } else {
+        if (!/^\d{10}$/.test(cleanRoll)) {
+          return res.status(400).json({ success: false, error: { message: 'Registration number must be exactly 10 digits' } });
+        }
+      }
+
+      updateData.rollNumber = cleanRoll;
+      updateData.idType = targetIdType;
+    }
     if (phone !== undefined) updateData.phone = phone;
     if (course !== undefined) updateData.course = course;
     if (branch !== undefined) updateData.branch = branch;
