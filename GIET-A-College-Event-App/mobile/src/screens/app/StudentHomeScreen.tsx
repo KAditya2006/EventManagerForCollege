@@ -202,9 +202,9 @@ const StudentHomeScreen: React.FC = () => {
             style={styles.collegeLogo}
             resizeMode="contain"
           />
-          <View>
-            <Text style={styles.collegeName}>GIET (AUTONOMOUS)</Text>
-            <Text style={styles.collegeSub}>Campus Events Portal • NAAC 'A+'</Text>
+          <View style={{ flex: 1, marginRight: 8 }}>
+            <Text style={styles.collegeName} numberOfLines={1}>GIET (AUTONOMOUS)</Text>
+            <Text style={styles.collegeSub} numberOfLines={1}>Campus Events Portal • NAAC 'A+'</Text>
           </View>
         </View>
 
@@ -556,6 +556,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignSelf: 'flex-start',
     marginTop: 8,
+    maxWidth: '100%',
   },
   verifiedDot: {
     width: 6,
@@ -568,6 +569,7 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     fontWeight: '700',
     color: '#0E526B',
+    flexShrink: 1,
   },
 
   /* 3. Shortcuts Row (2 Cards) */
@@ -924,11 +926,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    flexWrap: 'nowrap',
   },
   eventCardMetaText: {
     fontSize: 11,
     color: '#64748B',
-    maxWidth: 130,
+    flexShrink: 1,
   },
   metaDot: {
     fontSize: 11,

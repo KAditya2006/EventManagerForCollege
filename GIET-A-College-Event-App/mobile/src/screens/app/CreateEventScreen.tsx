@@ -66,9 +66,16 @@ const CreateEventScreen: React.FC = () => {
       
       const res = await createEvent(payload);
       if (res.success) {
-        Alert.alert('Draft Created', 'Event draft created successfully. You can review and publish it from Event Details.', [
-          { text: 'OK', onPress: () => navigation.goBack() }
-        ]);
+        Alert.alert(
+          '🎉 Event Created Successfully!',
+          'The Official Event Registration QR Code for campus notice boards and posters is ready.',
+          [
+            {
+              text: 'View Poster QR & Publish',
+              onPress: () => (navigation as any).replace('AdminEventDetails', { eventId: res.data._id }),
+            },
+          ]
+        );
       } else {
         Alert.alert('Error', res.error?.message || 'Failed to create event');
       }

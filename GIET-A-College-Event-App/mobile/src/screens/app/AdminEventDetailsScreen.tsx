@@ -214,6 +214,33 @@ const AdminEventDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
         />
       </Card>
 
+      {/* Event Winners Podium Card */}
+      {event.winners && event.winners.length > 0 && (
+        <Card style={styles.winnersCard}>
+          <View style={styles.winnersHeaderRow}>
+            <Text style={styles.cardHeader}>🏆 EVENT WINNERS PODIUM</Text>
+            <Badge label="Announced" variant="success" />
+          </View>
+
+          {event.winners.map((w: any) => (
+            <View key={w.position} style={styles.winnerItemRow}>
+              <Text style={{ fontSize: 24, marginRight: 10 }}>
+                {w.position === 1 ? '🥇' : w.position === 2 ? '🥈' : '🥉'}
+              </Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.winnerItemName}>
+                  {w.position === 1 ? '1st Place: ' : w.position === 2 ? '2nd Place: ' : '3rd Place: '}
+                  {w.name}
+                </Text>
+                <Text style={styles.winnerItemSub}>
+                  {[w.rollNumber ? `ID: ${w.rollNumber}` : null, w.branch, w.prize].filter(Boolean).join(' • ')}
+                </Text>
+              </View>
+            </View>
+          ))}
+        </Card>
+      )}
+
       {/* Operational Actions */}
       <Card style={styles.actionsCard}>
         <Text style={styles.cardHeader}>OPERATIONAL ACTIONS</Text>
@@ -222,15 +249,35 @@ const AdminEventDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           <ActivityIndicator size="small" color={colors.primary} style={{ marginBottom: spacing.md }} />
         )}
 
+        {/* View Event Participants */}
+        <Button 
+          title="👥 View Event Participants Roster"
+          onPress={() => navigation.navigate('AdminEventParticipants', { eventId: event._id, eventTitle: event.title })}
+          disabled={actionLoading}
+          variant="primary"
+          size="md"
+          style={styles.actionBtn}
+        />
+
+        {/* Manage / Declare Winners */}
+        <Button 
+          title={event.winners && event.winners.length > 0 ? "🏆 Update Event Winners" : "🏆 Declare Event Winners (1st, 2nd, 3rd)"}
+          onPress={() => navigation.navigate('AdminEventWinners', { eventId: event._id, eventTitle: event.title })}
+          disabled={actionLoading}
+          variant="secondary"
+          size="md"
+          style={styles.actionBtn}
+        />
+
         {/* Scan QR Pass (High visibility when PUBLISHED) */}
         {event.status === 'PUBLISHED' && (
           <Button 
-            title="📷 Scan Student QR Passes"
+            title="📷 Gate Attendance Scanner"
             onPress={() => navigation.navigate('ScanAttendance', { eventId: event._id })}
             disabled={actionLoading}
-            variant="primary"
-            size="lg"
-            style={styles.primaryAction}
+            variant="secondary"
+            size="md"
+            style={styles.actionBtn}
           />
         )}
 
@@ -459,6 +506,37 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.primary,
     fontWeight: '600',
+    marginTop: 2,
+  },
+  winnersCard: {
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+    backgroundColor: '#ffffff',
+    borderWidth: 1.5,
+    borderColor: '#FEF08A',
+  },
+  winnersHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  winnerItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  winnerItemName: {
+    ...typography.titleMedium,
+    fontSize: 14,
+    color: colors.textPrimary,
+    fontWeight: '700',
+  },
+  winnerItemSub: {
+    ...typography.caption,
+    color: colors.textSecondary,
     marginTop: 2,
   },
 });

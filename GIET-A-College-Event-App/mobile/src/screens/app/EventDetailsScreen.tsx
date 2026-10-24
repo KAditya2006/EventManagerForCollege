@@ -188,6 +188,49 @@ const EventDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             )}
           </Card>
 
+          {/* Winners Podium Card (if announced) */}
+          {event.winners && event.winners.length > 0 && (
+            <Card style={styles.winnersCard}>
+              <View style={styles.winnersHeaderRow}>
+                <Text style={styles.winnersTrophyIcon}>🏆</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.winnersHeaderTitle}>Official Event Winners</Text>
+                  <Text style={styles.winnersHeaderSub}>Declared by GIET Event Coordinators</Text>
+                </View>
+              </View>
+
+              <View style={styles.winnersList}>
+                {event.winners.map((w) => {
+                  const medal = w.position === 1 ? '🥇' : w.position === 2 ? '🥈' : '🥉';
+                  const posName = w.position === 1 ? '1st Place' : w.position === 2 ? '2nd Place' : '3rd Place';
+                  const posColor = w.position === 1 ? '#D97706' : w.position === 2 ? '#64748B' : '#B45309';
+
+                  return (
+                    <View key={w.position} style={styles.winnerItemRow}>
+                      <View style={styles.winnerMedalBox}>
+                        <Text style={styles.winnerMedalText}>{medal}</Text>
+                      </View>
+                      <View style={styles.winnerInfoCol}>
+                        <View style={styles.winnerPosRow}>
+                          <Text style={[styles.winnerPosText, { color: posColor }]}>{posName}</Text>
+                          {w.prize ? (
+                            <Text style={styles.winnerPrizeBadge} numberOfLines={1}>{w.prize}</Text>
+                          ) : null}
+                        </View>
+                        <Text style={styles.winnerNameText} numberOfLines={1}>{w.name}</Text>
+                        {(w.rollNumber || w.branch) && (
+                          <Text style={styles.winnerMetaText} numberOfLines={1}>
+                            {[w.rollNumber, w.branch].filter(Boolean).join(' • ')}
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </Card>
+          )}
+
           {/* About Event Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>About the Event</Text>
@@ -305,11 +348,98 @@ const styles = StyleSheet.create({
     ...typography.bodyMedium,
     color: colors.textPrimary,
     fontWeight: '600',
+    flexShrink: 1,
   },
   infoDivider: {
     height: 1,
     backgroundColor: colors.surfaceBorder,
     marginVertical: spacing.xs,
+  },
+  /* Winners Podium Card */
+  winnersCard: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FDE68A',
+    borderWidth: 1.5,
+    borderRadius: radii.md,
+    padding: spacing.md,
+    marginBottom: spacing.xl,
+  },
+  winnersHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+    gap: 10,
+  },
+  winnersTrophyIcon: {
+    fontSize: 26,
+  },
+  winnersHeaderTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#92400E',
+  },
+  winnersHeaderSub: {
+    fontSize: 11,
+    color: '#B45309',
+    fontWeight: '600',
+  },
+  winnersList: {
+    gap: 8,
+  },
+  winnerItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: radii.sm,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#FEF3C7',
+    gap: 10,
+  },
+  winnerMedalBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#FEF3C7',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  winnerMedalText: {
+    fontSize: 20,
+  },
+  winnerInfoCol: {
+    flex: 1,
+  },
+  winnerPosRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
+  winnerPosText: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  winnerPrizeBadge: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#16A34A',
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 7,
+    paddingVertical: 1.5,
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  winnerNameText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  winnerMetaText: {
+    fontSize: 11.5,
+    color: '#64748B',
+    marginTop: 1,
   },
   section: {
     marginBottom: spacing.xl,

@@ -1,5 +1,14 @@
 import api from './client';
 
+export interface EventWinner {
+  position: number;
+  studentId?: string;
+  name: string;
+  rollNumber?: string;
+  branch?: string;
+  prize?: string;
+}
+
 export interface Event {
   _id: string;
   title: string;
@@ -13,6 +22,9 @@ export interface Event {
   capacity?: number;
   poster?: string;
   status: 'DRAFT' | 'PUBLISHED' | 'CANCELLED';
+  winners?: EventWinner[];
+  winnersAnnouncedAt?: string;
+  registrationCount?: number;
   createdAt: string;
   updatedAt: string;
   isRegistered?: boolean;

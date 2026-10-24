@@ -113,6 +113,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api', registrationRoutes);
+app.use('/api/admin', adminEventRoutes);
 app.use('/api/admin/events', adminEventRoutes);
 app.use('/api/notifications', notificationRoutes);
 

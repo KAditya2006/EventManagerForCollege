@@ -6,6 +6,15 @@ export enum EventStatus {
   CANCELLED = 'CANCELLED'
 }
 
+export interface IWinner {
+  position: number; // 1, 2, or 3
+  studentId?: mongoose.Types.ObjectId;
+  name: string;
+  rollNumber?: string;
+  branch?: string;
+  prize?: string;
+}
+
 export interface IEvent extends Document {
   title: string;
   description: string;
@@ -18,6 +27,8 @@ export interface IEvent extends Document {
   capacity?: number;
   poster?: string;
   status: EventStatus;
+  winners?: IWinner[];
+  winnersAnnouncedAt?: Date;
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -40,6 +51,17 @@ const eventSchema = new Schema(
       enum: Object.values(EventStatus),
       default: EventStatus.DRAFT,
     },
+    winners: [
+      {
+        position: { type: Number, required: true },
+        studentId: { type: Schema.Types.ObjectId, ref: 'User' },
+        name: { type: String, required: true },
+        rollNumber: { type: String },
+        branch: { type: String },
+        prize: { type: String },
+      },
+    ],
+    winnersAnnouncedAt: { type: Date },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   },
   {

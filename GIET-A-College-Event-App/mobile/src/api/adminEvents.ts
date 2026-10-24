@@ -25,3 +25,23 @@ export const updateEventStatus = async (id: string, status: string) => {
   const response = await api.patch(`/admin/events/${id}/status`, { status });
   return response.data;
 };
+
+export const getEventParticipants = async (eventId: string) => {
+  const response = await api.get(`/admin/events/${eventId}/participants`);
+  return response.data;
+};
+
+export const updateEventWinners = async (eventId: string, winners: any[]) => {
+  const response = await api.put(`/admin/events/${eventId}/winners`, { winners });
+  return response.data;
+};
+
+export const getAppUsers = async (params?: { search?: string; role?: string; page?: number; limit?: number }) => {
+  const response = await api.get('/admin/users', { params });
+  return response.data;
+};
+
+export const getAdminDashboardSummary = async () => {
+  const response = await api.get('/admin/summary');
+  return response.data;
+};

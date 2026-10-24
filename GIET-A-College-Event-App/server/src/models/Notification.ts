@@ -5,6 +5,7 @@ export enum NotificationType {
   EVENT_UPDATED = 'EVENT_UPDATED',
   EVENT_CANCELLED = 'EVENT_CANCELLED',
   ATTENDANCE_CONFIRMED = 'ATTENDANCE_CONFIRMED',
+  WINNERS_ANNOUNCED = 'WINNERS_ANNOUNCED',
 }
 
 export interface INotification extends Document {

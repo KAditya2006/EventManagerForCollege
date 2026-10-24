@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
-import Event, { EventStatus } from '../models/Event';
+import Event, { EventStatus, IWinner } from '../models/Event';
 import mongoose from 'mongoose';
+import User, { UserRole } from '../models/User';
+import Registration from '../models/Registration';
 import { AuthRequest } from '../middleware/auth';
 import {
   createNotification,
@@ -311,3 +313,205 @@ export const checkInStudent = async (req: Request, res: Response) => {
     return res.status(500).json({ success: false, error: { message: 'Failed to process check-in.' } });
   }
 };
+
+/**
+ * Get all registered participants for a specific event with student profile details
+ * GET /api/admin/events/:eventId/participants
+ */
+export const getEventParticipants = async (req: Request, res: Response) => {
+  try {
+    const { eventId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(eventId as string)) {
+      return res.status(400).json({ success: false, error: { message: 'Invalid event ID' } });
+    }
+
+    const event = await Event.findById(eventId).select('title date startTime endTime venue capacity status winners');
+    if (!event) {
+      return res.status(404).json({ success: false, error: { message: 'Event not found' } });
+    }
+
+    const registrations = await Registration.find({ event: eventId })
+      .populate('student', 'name email rollNumber phone course branch year semester section')
+      .sort({ createdAt: -1 });
+
+    const totalRegistrations = registrations.length;
+    const checkedInCount = registrations.filter((r) => r.checkedIn).length;
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        event,
+        participants: registrations,
+        totalRegistrations,
+        checkedInCount,
+      },
+    });
+  } catch (error) {
+    console.error('[AdminEventController] getEventParticipants error:', error);
+    return res.status(500).json({ success: false, error: { message: 'Failed to fetch event participants' } });
+  }
+};
+
+/**
+ * Update and publish event winners (1st, 2nd, 3rd position)
+ * PUT /api/admin/events/:eventId/winners
+ */
+export const updateEventWinners = async (req: Request, res: Response) => {
+  try {
+    const { eventId } = req.params;
+    const { winners } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(eventId as string)) {
+      return res.status(400).json({ success: false, error: { message: 'Invalid event ID' } });
+    }
+
+    if (!Array.isArray(winners)) {
+      return res.status(400).json({ success: false, error: { message: 'Winners must be an array' } });
+    }
+
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ success: false, error: { message: 'Event not found' } });
+    }
+
+    event.winners = winners;
+    event.winnersAnnouncedAt = new Date();
+    await event.save();
+
+    // Broadcast announcement notification to all registered students of this event
+    const registrations = await Registration.find({ event: eventId });
+    for (const reg of registrations) {
+      createNotification({
+        recipient: reg.student.toString(),
+        type: NotificationType.WINNERS_ANNOUNCED,
+        title: `🏆 Winners Declared: ${event.title}`,
+        message: `Results have been officially announced for ${event.title}! Open the event to view the winners leaderboard.`,
+        event: event._id.toString(),
+      }).catch((e) => console.warn('[AdminEventController] Notification error:', e.message));
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: event,
+    });
+  } catch (error) {
+    console.error('[AdminEventController] updateEventWinners error:', error);
+    return res.status(500).json({ success: false, error: { message: 'Failed to update event winners' } });
+  }
+};
+
+/**
+ * Get all registered users / students in the platform
+ * GET /api/admin/users
+ */
+export const getAppUsers = async (req: Request, res: Response) => {
+  try {
+    const { search, role, page = '1', limit = '50' } = req.query;
+
+    let pageNum = parseInt(page as string, 10);
+    let limitNum = parseInt(limit as string, 10);
+    if (isNaN(pageNum) || pageNum < 1) pageNum = 1;
+    if (isNaN(limitNum) || limitNum < 1) limitNum = 50;
+    if (limitNum > 200) limitNum = 200;
+    const skip = (pageNum - 1) * limitNum;
+
+    const query: any = {};
+    if (role && (role === UserRole.STUDENT || role === UserRole.ADMIN)) {
+      query.role = role;
+    }
+
+    if (search && typeof search === 'string') {
+      const searchRegex = new RegExp(search.trim(), 'i');
+      query.$or = [
+        { name: searchRegex },
+        { rollNumber: searchRegex },
+        { email: searchRegex },
+        { branch: searchRegex },
+      ];
+    }
+
+    const users = await User.find(query)
+      .select('-__v')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum);
+
+    const totalUsers = await User.countDocuments(query);
+    const totalStudents = await User.countDocuments({ role: UserRole.STUDENT });
+
+    // Aggregate registration counts per user
+    const userIds = users.map((u) => u._id);
+    const regCounts = await Registration.aggregate([
+      { $match: { student: { $in: userIds } } },
+      { $group: { _id: '$student', count: { $sum: 1 } } },
+    ]);
+    const regCountMap = new Map();
+    regCounts.forEach((r) => regCountMap.set(r._id.toString(), r.count));
+
+    const usersWithStats = users.map((u) => ({
+      ...u.toObject(),
+      registrationsCount: regCountMap.get(u._id.toString()) || 0,
+    }));
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        users: usersWithStats,
+        totalUsers,
+        totalStudents,
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          totalPages: Math.ceil(totalUsers / limitNum),
+        },
+      },
+    });
+  } catch (error) {
+    console.error('[AdminEventController] getAppUsers error:', error);
+    return res.status(500).json({ success: false, error: { message: 'Failed to fetch users' } });
+  }
+};
+
+/**
+ * Get high-level executive dashboard summary metrics
+ * GET /api/admin/summary
+ */
+export const getAdminDashboardSummary = async (req: Request, res: Response) => {
+  try {
+    const [
+      totalEvents,
+      publishedEvents,
+      draftEvents,
+      cancelledEvents,
+      totalStudents,
+      totalUsers,
+      totalRegistrations,
+    ] = await Promise.all([
+      Event.countDocuments(),
+      Event.countDocuments({ status: EventStatus.PUBLISHED }),
+      Event.countDocuments({ status: EventStatus.DRAFT }),
+      Event.countDocuments({ status: EventStatus.CANCELLED }),
+      User.countDocuments({ role: UserRole.STUDENT }),
+      User.countDocuments(),
+      Registration.countDocuments(),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        totalEvents,
+        publishedEvents,
+        draftEvents,
+        cancelledEvents,
+        totalStudents,
+        totalUsers,
+        totalRegistrations,
+      },
+    });
+  } catch (error) {
+    console.error('[AdminEventController] getAdminDashboardSummary error:', error);
+    return res.status(500).json({ success: false, error: { message: 'Failed to fetch dashboard summary' } });
+  }
+};
+

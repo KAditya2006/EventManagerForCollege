@@ -14,6 +14,9 @@ import CheckInResultScreen from '../screens/app/CheckInResultScreen';
 import AdminEventFeedbackScreen from '../screens/app/AdminEventFeedbackScreen';
 import EditProfileScreen from '../screens/app/EditProfileScreen';
 import SettingsScreen from '../screens/app/SettingsScreen';
+import AdminUsersScreen from '../screens/app/AdminUsersScreen';
+import AdminEventParticipantsScreen from '../screens/app/AdminEventParticipantsScreen';
+import AdminEventWinnersScreen from '../screens/app/AdminEventWinnersScreen';
 import { colors } from '../theme';
 
 export type AdminStackParamList = {
@@ -21,6 +24,9 @@ export type AdminStackParamList = {
   CreateEvent: undefined;
   EditEvent: { eventId: string };
   AdminEventDetails: { eventId: string };
+  AdminUsers: undefined;
+  AdminEventParticipants: { eventId: string; eventTitle: string };
+  AdminEventWinners: { eventId: string; eventTitle: string };
   ScanAttendance: { eventId: string };
   CheckInResult: { eventId: string; result: any };
   AdminEventFeedback: { eventId: string; eventTitle: string };
@@ -74,11 +80,11 @@ const AdminTabs = () => (
       }}
     />
     <Tab.Screen 
-      name="Participants" 
-      component={AdminParticipantsScreen} 
+      name="Users" 
+      component={AdminUsersScreen} 
       options={{
-        title: 'Participant Roster',
-        tabBarLabel: 'Attendance',
+        headerShown: false,
+        tabBarLabel: 'Users',
         tabBarIcon: ({ color }) => (
           <AttendanceTabIcon size={22} color={color} />
         ),
@@ -114,6 +120,9 @@ export const AdminNavigator = () => {
       <Stack.Screen name="CreateEvent" component={CreateEventScreen} options={{ title: 'Create Event' }} />
       <Stack.Screen name="EditEvent" component={EditEventScreen} options={{ title: 'Edit Event' }} />
       <Stack.Screen name="AdminEventDetails" component={AdminEventDetailsScreen} options={{ title: 'Event Management' }} />
+      <Stack.Screen name="AdminUsers" component={AdminUsersScreen} options={{ title: 'Registered Students' }} />
+      <Stack.Screen name="AdminEventParticipants" component={AdminEventParticipantsScreen} options={{ title: 'Event Participants' }} />
+      <Stack.Screen name="AdminEventWinners" component={AdminEventWinnersScreen} options={{ title: 'Manage Winners' }} />
       <Stack.Screen name="ScanAttendance" component={ScanAttendanceScreen} options={{ title: 'Scan Student Pass' }} />
       <Stack.Screen name="CheckInResult" component={CheckInResultScreen} options={{ title: 'Check-In Result', headerBackVisible: false }} />
       <Stack.Screen name="AdminEventFeedback" component={AdminEventFeedbackScreen} options={{ title: 'Feedback & Ratings' }} />

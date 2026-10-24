@@ -7,14 +7,15 @@ import {
   TouchableOpacity, 
   ActivityIndicator, 
   RefreshControl,
-  Image 
+  Image,
+  Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { AdminStackParamList } from '../../navigation/AdminNavigator';
-import { getAdminEvents } from '../../api/adminEvents';
+import { getAdminEvents, getAdminDashboardSummary } from '../../api/adminEvents';
 import { Event } from '../../api/events';
 import { useAuth } from '../../context/AuthContext';
 import { colors, spacing } from '../../theme';
@@ -27,7 +28,8 @@ import {
   ShieldIcon,
   ArrowRightIcon,
   PulseIcon,
-  AttendanceTabIcon 
+  AttendanceTabIcon,
+  UserIcon
 } from '../../components/FormIcons';
 
 type NavigationProp = NativeStackNavigationProp<AdminStackParamList>;
@@ -36,15 +38,30 @@ const AdminDashboardScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
+  const [summary, setSummary] = useState({
+    totalEvents: 0,
+    publishedEvents: 0,
+    draftEvents: 0,
+    cancelledEvents: 0,
+    totalStudents: 0,
+    totalUsers: 0,
+    totalRegistrations: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchStats = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     try {
-      const res = await getAdminEvents({ limit: 100 });
+      const [res, sumRes] = await Promise.all([
+        getAdminEvents({ limit: 100 }),
+        getAdminDashboardSummary().catch(() => null),
+      ]);
       if (res.success) {
         setEvents(res.data);
+      }
+      if (sumRes && sumRes.success && sumRes.data) {
+        setSummary(sumRes.data);
       }
     } catch (error) {
       console.error('Failed to load dashboard events', error);
@@ -64,10 +81,11 @@ const AdminDashboardScreen: React.FC = () => {
     fetchStats(true);
   };
 
-  const totalCount = events.length;
-  const publishedCount = events.filter(e => e.status === 'PUBLISHED').length;
-  const draftCount = events.filter(e => e.status === 'DRAFT').length;
-  const cancelledCount = events.filter(e => e.status === 'CANCELLED').length;
+  const totalCount = summary.totalEvents || events.length;
+  const publishedCount = summary.publishedEvents || events.filter(e => e.status === 'PUBLISHED').length;
+  const draftCount = summary.draftEvents || events.filter(e => e.status === 'DRAFT').length;
+  const studentsCount = summary.totalStudents || 0;
+  const cancelledCount = summary.cancelledEvents || events.filter(e => e.status === 'CANCELLED').length;
 
   const recentEvents = events.slice(0, 3);
   const adminName = user?.name ? user.name.split(' ')[0] : 'Admin';
@@ -102,7 +120,11 @@ const AdminDashboardScreen: React.FC = () => {
       >
         {/* 1. Official College Header */}
         <View style={styles.topHeader}>
-          <View style={styles.brandGroup}>
+          <TouchableOpacity 
+            style={styles.brandGroup} 
+            activeOpacity={0.8}
+            onPress={() => fetchStats(true)}
+          >
             <View style={styles.logoRing}>
               <Image
                 source={require('../../../assets/giet-logo-transparent.png')}
@@ -110,16 +132,20 @@ const AdminDashboardScreen: React.FC = () => {
                 resizeMode="contain"
               />
             </View>
-            <View>
-              <Text style={styles.collegeTitle}>GIET (AUTONOMOUS)</Text>
-              <Text style={styles.collegeSub}>CAMPUS OPERATIONS HUB</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.collegeTitle} numberOfLines={1}>GIET (AUTONOMOUS)</Text>
+              <Text style={styles.collegeSub} numberOfLines={1}>CAMPUS OPERATIONS HUB</Text>
             </View>
-          </View>
+          </TouchableOpacity>
 
-          <View style={styles.liveStatusPill}>
+          <TouchableOpacity 
+            style={styles.liveStatusPill}
+            onPress={() => fetchStats(true)}
+            activeOpacity={0.7}
+          >
             <View style={styles.liveDot} />
             <Text style={styles.liveStatusText}>LIVE OPS</Text>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* 2. Executive Command Banner */}
@@ -135,9 +161,9 @@ const AdminDashboardScreen: React.FC = () => {
             <Text style={styles.heroSessionTag}>Odd Sem 2026</Text>
           </View>
 
-          <Text style={styles.heroTitle}>Welcome back, {adminName} 👋</Text>
+          <Text style={styles.heroTitle} numberOfLines={1}>Welcome back, {adminName} 👋</Text>
           <Text style={styles.heroSubtitle}>
-            Manage campus event schedules, oversee hall pass verifications, and monitor attendance metrics.
+            Manage campus event schedules, view registered student roster, and declare event winners.
           </Text>
 
           {/* Quick Executive CTAs */}
@@ -148,16 +174,18 @@ const AdminDashboardScreen: React.FC = () => {
               activeOpacity={0.85}
             >
               <PlusIcon size={16} color="#FFFFFF" />
-              <Text style={styles.heroPrimaryBtnText}>Create New Event</Text>
+              <Text style={styles.heroPrimaryBtnText}>Create Event</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
               style={styles.heroSecondaryBtn}
-              onPress={() => (navigation as any).navigate('Attendance')}
+              onPress={() => (navigation as any).navigate('AdminUsers')}
               activeOpacity={0.85}
             >
-              <QrScanIcon size={16} color="#FFFFFF" />
-              <Text style={styles.heroSecondaryBtnText}>Scan Passes</Text>
+              <UserIcon size={16} color="#38BDF8" />
+              <Text style={styles.heroSecondaryBtnText} numberOfLines={1}>
+                App Users ({studentsCount})
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -168,7 +196,7 @@ const AdminDashboardScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* 3. Compact Horizon KPI Deck (Single Unified 4-Column Panel) */}
+        {/* 3. Compact Horizon KPI Deck (All 4 Columns Fully Clickable) */}
         <View style={styles.metricsContainer}>
           <View style={styles.metricsHeader}>
             <View style={styles.metricsHeaderLeft}>
@@ -176,12 +204,12 @@ const AdminDashboardScreen: React.FC = () => {
               <Text style={styles.metricsSectionTitle}>EVENT PIPELINE METRICS</Text>
             </View>
             <TouchableOpacity onPress={() => (navigation as any).navigate('Events')}>
-              <Text style={styles.viewRosterLink}>View Roster →</Text>
+              <Text style={styles.viewRosterLink}>View All Events →</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.kpiPanel}>
-            {/* Total */}
+            {/* Total Events */}
             <TouchableOpacity 
               style={styles.kpiCol}
               onPress={() => (navigation as any).navigate('Events')}
@@ -190,7 +218,7 @@ const AdminDashboardScreen: React.FC = () => {
               <Text style={[styles.kpiNumber, { color: '#0E526B' }]}>{totalCount}</Text>
               <View style={styles.kpiLabelRow}>
                 <View style={[styles.kpiDot, { backgroundColor: '#0E526B' }]} />
-                <Text style={styles.kpiLabel}>Total</Text>
+                <Text style={styles.kpiLabel} numberOfLines={1}>Events</Text>
               </View>
             </TouchableOpacity>
 
@@ -205,7 +233,22 @@ const AdminDashboardScreen: React.FC = () => {
               <Text style={[styles.kpiNumber, { color: '#16A34A' }]}>{publishedCount}</Text>
               <View style={styles.kpiLabelRow}>
                 <View style={[styles.kpiDot, { backgroundColor: '#16A34A' }]} />
-                <Text style={styles.kpiLabel}>Published</Text>
+                <Text style={styles.kpiLabel} numberOfLines={1}>Published</Text>
+              </View>
+            </TouchableOpacity>
+
+            <View style={styles.kpiDivider} />
+
+            {/* App Users / Registered Students */}
+            <TouchableOpacity 
+              style={styles.kpiCol}
+              onPress={() => (navigation as any).navigate('AdminUsers')}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.kpiNumber, { color: '#2563EB' }]}>{studentsCount}</Text>
+              <View style={styles.kpiLabelRow}>
+                <View style={[styles.kpiDot, { backgroundColor: '#2563EB' }]} />
+                <Text style={styles.kpiLabel} numberOfLines={1}>Users</Text>
               </View>
             </TouchableOpacity>
 
@@ -220,28 +263,13 @@ const AdminDashboardScreen: React.FC = () => {
               <Text style={[styles.kpiNumber, { color: '#D97706' }]}>{draftCount}</Text>
               <View style={styles.kpiLabelRow}>
                 <View style={[styles.kpiDot, { backgroundColor: '#D97706' }]} />
-                <Text style={styles.kpiLabel}>Drafts</Text>
-              </View>
-            </TouchableOpacity>
-
-            <View style={styles.kpiDivider} />
-
-            {/* Cancelled */}
-            <TouchableOpacity 
-              style={styles.kpiCol}
-              onPress={() => (navigation as any).navigate('Events')}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.kpiNumber, { color: '#DC2626' }]}>{cancelledCount}</Text>
-              <View style={styles.kpiLabelRow}>
-                <View style={[styles.kpiDot, { backgroundColor: '#DC2626' }]} />
-                <Text style={styles.kpiLabel}>Cancelled</Text>
+                <Text style={styles.kpiLabel} numberOfLines={1}>Drafts</Text>
               </View>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* 4. Quick Operations Hub (2x2 Control Grid) */}
+        {/* 4. Quick Operations Hub (2x2 Control Grid - Every tile is clickable) */}
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionHeading}>Quick Operations Hub</Text>
           <Text style={styles.sectionSubBadge}>4 TOOLS</Text>
@@ -261,14 +289,53 @@ const AdminDashboardScreen: React.FC = () => {
                   <PlusIcon size={18} color="#FFFFFF" />
                 </View>
                 <View style={[styles.miniBadge, { backgroundColor: '#E0F2FE' }]}>
-                  <Text style={[styles.miniBadgeText, { color: '#0369A1' }]}>NEW</Text>
+                  <Text style={[styles.miniBadgeText, { color: '#0369A1' }]}>POSTER QR</Text>
                 </View>
               </View>
-              <Text style={styles.commandTitle}>Create Event</Text>
-              <Text style={styles.commandDesc}>Draft seminars & festivals</Text>
+              <Text style={styles.commandTitle} numberOfLines={1}>Create Event</Text>
+              <Text style={styles.commandDesc} numberOfLines={2}>Generate notice QR & poster</Text>
             </TouchableOpacity>
 
-            {/* QR Scanner */}
+            {/* App Users & Students */}
+            <TouchableOpacity 
+              style={styles.commandCard}
+              onPress={() => (navigation as any).navigate('AdminUsers')}
+              activeOpacity={0.8}
+            >
+              <View style={styles.commandCardTop}>
+                <View style={[styles.commandIconBox, { backgroundColor: '#2563EB' }]}>
+                  <UserIcon size={18} color="#FFFFFF" />
+                </View>
+                <View style={[styles.miniBadge, { backgroundColor: '#DBEAFE' }]}>
+                  <Text style={[styles.miniBadgeText, { color: '#1D4ED8' }]}>{studentsCount} USERS</Text>
+                </View>
+              </View>
+              <Text style={styles.commandTitle} numberOfLines={1}>App Users</Text>
+              <Text style={styles.commandDesc} numberOfLines={2}>View all students & accounts</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Row 2 */}
+          <View style={styles.commandRow}>
+            {/* Manage Events & Winners */}
+            <TouchableOpacity 
+              style={styles.commandCard}
+              onPress={() => (navigation as any).navigate('Events')}
+              activeOpacity={0.8}
+            >
+              <View style={styles.commandCardTop}>
+                <View style={[styles.commandIconBox, { backgroundColor: '#D97706' }]}>
+                  <EventsTabIcon size={18} color="#FFFFFF" />
+                </View>
+                <View style={[styles.miniBadge, { backgroundColor: '#FEF3C7' }]}>
+                  <Text style={[styles.miniBadgeText, { color: '#B45309' }]}>WINNERS</Text>
+                </View>
+              </View>
+              <Text style={styles.commandTitle} numberOfLines={1}>Events & Winners</Text>
+              <Text style={styles.commandDesc} numberOfLines={2}>1st, 2nd, 3rd place podium</Text>
+            </TouchableOpacity>
+
+            {/* Gate Attendance Scanner */}
             <TouchableOpacity 
               style={styles.commandCard}
               onPress={() => (navigation as any).navigate('Attendance')}
@@ -282,56 +349,17 @@ const AdminDashboardScreen: React.FC = () => {
                   <Text style={[styles.miniBadgeText, { color: '#15803D' }]}>GATE</Text>
                 </View>
               </View>
-              <Text style={styles.commandTitle}>QR Scanner</Text>
-              <Text style={styles.commandDesc}>Scan student hall passes</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Row 2 */}
-          <View style={styles.commandRow}>
-            {/* Manage Events */}
-            <TouchableOpacity 
-              style={styles.commandCard}
-              onPress={() => (navigation as any).navigate('Events')}
-              activeOpacity={0.8}
-            >
-              <View style={styles.commandCardTop}>
-                <View style={[styles.commandIconBox, { backgroundColor: '#2563EB' }]}>
-                  <EventsTabIcon size={18} color="#FFFFFF" />
-                </View>
-                <View style={[styles.miniBadge, { backgroundColor: '#DBEAFE' }]}>
-                  <Text style={[styles.miniBadgeText, { color: '#1D4ED8' }]}>{totalCount} ROSTER</Text>
-                </View>
-              </View>
-              <Text style={styles.commandTitle}>Manage Events</Text>
-              <Text style={styles.commandDesc}>Publish, edit & schedules</Text>
-            </TouchableOpacity>
-
-            {/* Student Rosters */}
-            <TouchableOpacity 
-              style={styles.commandCard}
-              onPress={() => (navigation as any).navigate('Attendance')}
-              activeOpacity={0.8}
-            >
-              <View style={styles.commandCardTop}>
-                <View style={[styles.commandIconBox, { backgroundColor: '#7C3AED' }]}>
-                  <AttendanceTabIcon size={18} color="#FFFFFF" />
-                </View>
-                <View style={[styles.miniBadge, { backgroundColor: '#F3E8FF' }]}>
-                  <Text style={[styles.miniBadgeText, { color: '#7E22CE' }]}>AUDIT</Text>
-                </View>
-              </View>
-              <Text style={styles.commandTitle}>Participants</Text>
-              <Text style={styles.commandDesc}>Live check-in records</Text>
+              <Text style={styles.commandTitle} numberOfLines={1}>Gate Attendance</Text>
+              <Text style={styles.commandDesc} numberOfLines={2}>Scan entry hall passes</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* 5. Recent Campus Events */}
         <View style={styles.recentSectionHeader}>
-          <View>
-            <Text style={styles.sectionHeading}>Recent Campus Events</Text>
-            <Text style={styles.sectionSubHeading}>Latest scheduled campus activities</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.sectionHeading} numberOfLines={1}>Recent Campus Events</Text>
+            <Text style={styles.sectionSubHeading} numberOfLines={1}>Click any event to manage participants & winners</Text>
           </View>
           <TouchableOpacity 
             style={styles.viewAllBtn}
@@ -355,6 +383,7 @@ const AdminDashboardScreen: React.FC = () => {
           recentEvents.map((item) => {
             const isCancelled = item.status === 'CANCELLED';
             const isPublished = item.status === 'PUBLISHED';
+            const hasWinners = item.winners && item.winners.length > 0;
             const d = new Date(item.date);
             const monthStr = d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
             const dayNum = d.getDate();
@@ -389,7 +418,12 @@ const AdminDashboardScreen: React.FC = () => {
                         {item.status}
                       </Text>
                       {item.category && (
-                        <Text style={styles.categoryBadge}>{item.category.toUpperCase()}</Text>
+                        <Text style={styles.categoryBadge} numberOfLines={1}>{item.category.toUpperCase()}</Text>
+                      )}
+                      {hasWinners && (
+                        <View style={styles.winnersTagBadge}>
+                          <Text style={styles.winnersTagText}>🏆 WINNERS OUT</Text>
+                        </View>
                       )}
                     </View>
 
@@ -397,7 +431,7 @@ const AdminDashboardScreen: React.FC = () => {
 
                     <View style={styles.metaRow}>
                       <ClockIcon size={12} color="#64748B" />
-                      <Text style={styles.metaText}>{item.startTime} {item.endTime ? `- ${item.endTime}` : ''}</Text>
+                      <Text style={styles.metaText} numberOfLines={1}>{item.startTime} {item.endTime ? `- ${item.endTime}` : ''}</Text>
                     </View>
 
                     <View style={styles.metaRow}>
@@ -409,11 +443,17 @@ const AdminDashboardScreen: React.FC = () => {
 
                 {/* Event Card Bottom Bar */}
                 <View style={styles.eventCardFooter}>
-                  <Text style={styles.capacityLabel}>
-                    Capacity: <Text style={styles.capacityValue}>{item.capacity ? `${item.capacity} seats` : 'Unlimited'}</Text>
-                  </Text>
+                  <TouchableOpacity
+                    style={styles.participantsBadgeBtn}
+                    onPress={() => (navigation as any).navigate('AdminEventParticipants', { eventId: item._id, eventTitle: item.title })}
+                  >
+                    <Text style={styles.participantsBadgeText}>
+                      👥 {item.registrationCount || 0} Registered
+                    </Text>
+                  </TouchableOpacity>
+                  
                   <View style={styles.manageLinkGroup}>
-                    <Text style={styles.manageLinkText}>Manage</Text>
+                    <Text style={styles.manageLinkText}>Manage & Winners</Text>
                     <ArrowRightIcon size={12} color={colors.primary} />
                   </View>
                 </View>
@@ -422,18 +462,23 @@ const AdminDashboardScreen: React.FC = () => {
           })
         )}
 
-        {/* 6. Campus Security Notice Card */}
-        <View style={styles.securityNoticeCard}>
+        {/* 6. Campus Security Notice Card (Clickable to Gate Attendance) */}
+        <TouchableOpacity 
+          style={styles.securityNoticeCard}
+          onPress={() => (navigation as any).navigate('Attendance')}
+          activeOpacity={0.8}
+        >
           <View style={styles.noticeIconBox}>
             <ShieldIcon size={20} color="#0E526B" />
           </View>
           <View style={styles.noticeTextBox}>
-            <Text style={styles.noticeTitle}>Autonomous Gate Verification</Text>
+            <Text style={styles.noticeTitle}>Autonomous Gate Verification Station</Text>
             <Text style={styles.noticeDesc}>
-              Scanning stations are synced in real-time with GIET database servers. Ensure students present their active digital pass.
+              Tap here to launch the hall pass barcode scanner for check-in on event day.
             </Text>
           </View>
-        </View>
+          <ArrowRightIcon size={14} color="#0E526B" />
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -1022,6 +1067,33 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#475569',
     lineHeight: 15,
+  },
+  winnersTagBadge: {
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginLeft: 4,
+  },
+  winnersTagText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#B45309',
+  },
+  participantsBadgeBtn: {
+    backgroundColor: '#EFF6FF',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3.5,
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+  },
+  participantsBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#1D4ED8',
   },
 });
 
