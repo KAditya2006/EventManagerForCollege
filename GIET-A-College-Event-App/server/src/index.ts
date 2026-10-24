@@ -80,8 +80,9 @@ if (process.env.NODE_ENV === 'production') {
   }
 }
 
-// Body Parser with strict limit to prevent payload attacks
-app.use(express.json({ limit: '10kb' }));
+// Body Parser with generous limit to accommodate high-res event posters
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Health Check Endpoint
 // (Lightweight, unauthenticated, exempt from rate-limiting for UptimeRobot & cloud keep-alive monitors)

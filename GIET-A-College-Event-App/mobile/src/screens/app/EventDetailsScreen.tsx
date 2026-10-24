@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, Platform, Image } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { StudentStackParamList } from '../../navigation/StudentNavigator';
@@ -105,6 +105,17 @@ const EventDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
         <View style={styles.institutionHeader}>
           <Text style={styles.institutionTag}>GIET (AUTONOMOUS) • CAMPUS EVENT</Text>
         </View>
+
+        {/* Event Poster Hero Banner (if uploaded by Admin) */}
+        {event.poster ? (
+          <View style={styles.posterHeroBox}>
+            <Image 
+              source={{ uri: event.poster }} 
+              style={styles.posterHeroImage} 
+              resizeMode="cover"
+            />
+          </View>
+        ) : null}
 
         <View style={styles.detailsContainer}>
           <View style={styles.titleSection}>
@@ -501,6 +512,17 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.surfaceBorder,
     backgroundColor: colors.surface,
+  },
+  /* Poster Hero Styles */
+  posterHeroBox: {
+    width: '100%',
+    height: 220,
+    backgroundColor: '#0A2540',
+    overflow: 'hidden',
+  },
+  posterHeroImage: {
+    width: '100%',
+    height: '100%',
   },
 });
 

@@ -52,7 +52,7 @@ export const handleEventLandingPage = async (req: Request, res: Response) => {
   <meta name="description" content="Register for ${escapeHtml(event.title)} at Gandhi Institute for Education and Technology (Autonomous), Bhubaneswar.">
   <meta property="og:title" content="${escapeHtml(event.title)} - GIET(A) College Event">
   <meta property="og:description" content="Date: ${formattedDate} | Venue: ${escapeHtml(event.venue)}">
-  <meta property="og:image" content="${GIET_LOGO_URL}">
+  <meta property="og:image" content="${event.poster ? escapeHtml(event.poster) : GIET_LOGO_URL}">
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -129,6 +129,21 @@ export const handleEventLandingPage = async (req: Request, res: Response) => {
       padding: 20px;
       border: 1px solid #334155;
       margin-bottom: 24px;
+    }
+    .event-poster-container {
+      margin-bottom: 16px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #334155;
+      background: #020617;
+      max-height: 280px;
+    }
+    .event-poster {
+      width: 100%;
+      height: 100%;
+      max-height: 280px;
+      object-fit: cover;
+      display: block;
     }
     .event-category {
       font-size: 11px;
@@ -286,6 +301,11 @@ export const handleEventLandingPage = async (req: Request, res: Response) => {
     <div class="content">
       <!-- Event Overview -->
       <div class="event-card">
+        ${event.poster ? `
+        <div class="event-poster-container">
+          <img src="${event.poster}" alt="${escapeHtml(event.title)} Poster" class="event-poster" />
+        </div>
+        ` : ''}
         <div class="event-category">${escapeHtml(event.category || 'College Event')}</div>
         <h1 class="event-title">${escapeHtml(event.title)}</h1>
 

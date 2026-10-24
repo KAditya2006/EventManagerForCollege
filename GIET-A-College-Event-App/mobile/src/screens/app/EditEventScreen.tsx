@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Image, TouchableOpacity } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import * as ImagePicker from 'expo-image-picker';
 import { AdminStackParamList } from '../../navigation/AdminNavigator';
 import { getAdminEventDetails, updateEvent } from '../../api/adminEvents';
 import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { ErrorState } from '../../components/ErrorState';
-import { colors, spacing, typography } from '../../theme';
+import { colors, spacing, typography, radii } from '../../theme';
 
 type Props = NativeStackScreenProps<AdminStackParamList, 'EditEvent'>;
 
@@ -26,7 +27,8 @@ const EditEventScreen: React.FC<Props> = ({ route, navigation }) => {
     venue: '',
     organizer: '',
     category: '',
-    capacity: ''
+    capacity: '',
+    poster: ''
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
@@ -51,7 +53,8 @@ const EditEventScreen: React.FC<Props> = ({ route, navigation }) => {
           venue: ev.venue || '',
           organizer: ev.organizer || '',
           category: ev.category || '',
-          capacity: ev.capacity ? ev.capacity.toString() : ''
+          capacity: ev.capacity ? ev.capacity.toString() : '',
+          poster: ev.poster || ''
         });
       } else {
         setError(true);
@@ -68,6 +71,36 @@ const EditEventScreen: React.FC<Props> = ({ route, navigation }) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const handlePickPoster = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert('Permission Denied', 'Camera roll access is required to upload an event poster.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.7,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        if (asset.base64) {
+          const mimeType = asset.mimeType || 'image/jpeg';
+          handleChange('poster', `data:${mimeType};base64,${asset.base64}`);
+        } else if (asset.uri) {
+          handleChange('poster', asset.uri);
+        }
+      }
+    } catch (err: any) {
+      Alert.alert('Image Picker Error', err.message || 'Failed to select image.');
     }
   };
 
@@ -103,6 +136,7 @@ const EditEventScreen: React.FC<Props> = ({ route, navigation }) => {
         organizer: formData.organizer.trim(),
         category: formData.category.trim() || undefined,
         capacity: formData.capacity.trim() ? parseInt(formData.capacity.trim(), 10) : undefined,
+        poster: formData.poster.trim() || undefined,
       };
       
       const res = await updateEvent(eventId, payload);
@@ -251,6 +285,48 @@ const EditEventScreen: React.FC<Props> = ({ route, navigation }) => {
           />
         </Card>
 
+        {/* Poster & Visual Media Card */}
+        <Card style={styles.formCard}>
+          <Text style={styles.cardHeader}>EVENT POSTER & BANNER (OPTIONAL)</Text>
+          <Text style={styles.posterCardSub}>
+            Update promotional poster image for campus notice boards and mobile app banner.
+          </Text>
+
+          {formData.poster ? (
+            <View style={styles.posterPreviewContainer}>
+              <Image source={{ uri: formData.poster }} style={styles.posterPreviewImage} resizeMode="cover" />
+              <TouchableOpacity
+                style={styles.removePosterBtn}
+                onPress={() => handleChange('poster', '')}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.removePosterText}>✕ Remove Poster</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity 
+              style={styles.pickPosterBtn}
+              onPress={handlePickPoster}
+              activeOpacity={0.8}
+            >
+              <Text style={{ fontSize: 26, marginBottom: 4 }}>🖼️</Text>
+              <Text style={styles.pickPosterBtnText}>Select Poster from Device Gallery</Text>
+              <Text style={styles.pickPosterBtnSub}>JPG, PNG • High Quality Banner</Text>
+            </TouchableOpacity>
+          )}
+
+          <Text style={styles.orDividerText}>— OR ENTER IMAGE URL —</Text>
+
+          <Input
+            label="Direct Poster Image URL"
+            value={formData.poster.startsWith('data:') ? '' : formData.poster}
+            onChangeText={(v) => handleChange('poster', v)}
+            placeholder="https://example.com/fest-poster.jpg"
+            editable={!saving}
+            helperText="Cloudinary, Imgur, or direct web image link"
+          />
+        </Card>
+
         <Button 
           title="Save Changes"
           onPress={handleSubmit}
@@ -299,6 +375,67 @@ const styles = StyleSheet.create({
   submitButton: {
     marginTop: spacing.md,
     marginBottom: spacing.xxl,
+  },
+  /* Poster Media Styles */
+  posterCardSub: {
+    fontSize: 12,
+    color: '#64748B',
+    marginBottom: spacing.md,
+    lineHeight: 16,
+  },
+  pickPosterBtn: {
+    backgroundColor: '#F0F9FB',
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: '#0E526B',
+    borderRadius: radii.md,
+    paddingVertical: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pickPosterBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0E526B',
+  },
+  pickPosterBtnSub: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  posterPreviewContainer: {
+    borderRadius: radii.md,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    position: 'relative',
+    marginBottom: spacing.xs,
+  },
+  posterPreviewImage: {
+    width: '100%',
+    height: 180,
+  },
+  removePosterBtn: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  removePosterText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  orDividerText: {
+    textAlign: 'center',
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#94A3B8',
+    letterSpacing: 0.8,
+    marginVertical: spacing.md,
   },
 });
 

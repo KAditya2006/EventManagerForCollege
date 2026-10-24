@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, Image } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { AdminStackParamList } from '../../navigation/AdminNavigator';
@@ -118,6 +118,17 @@ const AdminEventDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {/* Event Poster Banner (if uploaded by Admin) */}
+      {event.poster ? (
+        <Card style={styles.posterCard}>
+          <Image 
+            source={{ uri: event.poster }} 
+            style={styles.adminPosterImage} 
+            resizeMode="cover" 
+          />
+        </Card>
+      ) : null}
+
       {/* Event Header Card */}
       <Card style={styles.headerCard}>
         <View style={styles.titleRow}>
@@ -615,6 +626,19 @@ const styles = StyleSheet.create({
     color: '#059669',
     fontWeight: '700',
     marginTop: 4,
+  },
+  /* Event Poster Styles */
+  posterCard: {
+    padding: 0,
+    overflow: 'hidden',
+    borderRadius: radii.md,
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  adminPosterImage: {
+    width: '100%',
+    height: 200,
   },
 });
 
