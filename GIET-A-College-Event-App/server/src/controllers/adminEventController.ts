@@ -156,6 +156,24 @@ export const updateEvent = async (req: Request, res: Response) => {
 
     await event.save();
 
+    // Sync updated event details across all registration records
+    try {
+      await Registration.updateMany(
+        { event: event._id },
+        {
+          $set: {
+            eventTitle: event.title,
+            eventCategory: event.category || '',
+            eventDate: event.date,
+            eventVenue: event.venue,
+            eventTime: `${event.startTime} - ${event.endTime}`,
+          },
+        }
+      );
+    } catch (syncErr: any) {
+      console.warn('[AdminEventController] Registration sync warning:', syncErr.message);
+    }
+
     if (event.status === EventStatus.PUBLISHED) {
       await createNotificationsForEventUpdate(event._id.toString(), event.title);
     }

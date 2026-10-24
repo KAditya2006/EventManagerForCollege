@@ -87,17 +87,23 @@ export const registerForEvent = async (req: Request, res: Response) => {
     const crypto = require('crypto');
     const qrToken = crypto.randomBytes(32).toString('hex');
 
-    // Fetch student profile details to store name/email directly on the registration record
-    const studentUser = await User.findById(studentId).select('name email rollNumber branch');
+    // Fetch student profile details to store name/email/phone directly on the registration record
+    const studentUser = await User.findById(studentId).select('name email rollNumber branch phone');
 
-    // Create registration
+    // Create registration with student and event details stored directly
     const registration = new Registration({
       student: studentId,
       studentName: studentUser?.name || 'Student',
       studentEmail: studentUser?.email,
       studentRollNumber: studentUser?.rollNumber,
       studentBranch: studentUser?.branch,
+      studentPhone: studentUser?.phone,
       event: eventId,
+      eventTitle: event.title,
+      eventCategory: event.category || '',
+      eventDate: event.date,
+      eventVenue: event.venue,
+      eventTime: `${event.startTime} - ${event.endTime}`,
       status: RegistrationStatus.REGISTERED,
       qrToken,
     });

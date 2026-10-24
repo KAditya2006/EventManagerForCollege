@@ -246,6 +246,7 @@ export const completeProfile = async (req: Request, res: Response) => {
             studentEmail: user.email,
             studentRollNumber: user.rollNumber,
             studentBranch: user.branch,
+            studentPhone: user.phone,
           },
         }
       );

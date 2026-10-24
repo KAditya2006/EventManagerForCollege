@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import User from '../models/User';
 import { AuthRequest } from '../middleware/auth';
 
@@ -54,6 +55,25 @@ export const updateProfile = async (req: Request, res: Response) => {
 
     if (!user) {
       return res.status(404).json({ success: false, error: { message: 'User not found' } });
+    }
+
+    // Keep registration records in sync with updated student info
+    try {
+      const Registration = mongoose.model('Registration');
+      await Registration.updateMany(
+        { student: user._id },
+        {
+          $set: {
+            studentName: user.name,
+            studentEmail: user.email,
+            studentRollNumber: user.rollNumber,
+            studentBranch: user.branch,
+            studentPhone: user.phone,
+          },
+        }
+      );
+    } catch (syncErr: any) {
+      console.warn('[ProfileController] Registration sync warning:', syncErr.message);
     }
 
     return res.status(200).json({ success: true, data: user });
