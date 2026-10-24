@@ -60,6 +60,8 @@ const AdminEventWinnersScreen: React.FC<Props> = ({ route, navigation }) => {
     prize: '3rd Prize • Bronze Medal + Certificate',
   });
 
+  const [markAsCompleted, setMarkAsCompleted] = useState(true);
+
   useEffect(() => {
     fetchInitialData();
   }, [eventId]);
@@ -118,11 +120,13 @@ const AdminEventWinnersScreen: React.FC<Props> = ({ route, navigation }) => {
 
     try {
       setSubmitting(true);
-      const res = await updateEventWinners(eventId, winnersList);
+      const res = await updateEventWinners(eventId, winnersList, markAsCompleted);
       if (res.success) {
         Alert.alert(
-          '🏆 Winners Published!',
-          'Event winners have been officially announced and saved to the leaderboard. All registered students will receive a notification.',
+          markAsCompleted ? '🏆 Winners Announced & Event Completed!' : '🏆 Winners Published!',
+          markAsCompleted
+            ? 'Event winners have been officially announced, prize distribution is recorded, and this event is now marked as COMPLETED.'
+            : 'Event winners have been officially announced and saved to the leaderboard. All registered students will receive a notification.',
           [
             {
               text: 'OK',
@@ -379,9 +383,26 @@ const AdminEventWinnersScreen: React.FC<Props> = ({ route, navigation }) => {
           </Card>
         ) : null}
 
+        {/* Mark as Completed Toggle Card */}
+        <TouchableOpacity
+          style={styles.completedToggleCard}
+          onPress={() => setMarkAsCompleted(!markAsCompleted)}
+          activeOpacity={0.8}
+        >
+          <View style={[styles.toggleCheckbox, markAsCompleted && styles.toggleCheckboxActive]}>
+            {markAsCompleted && <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 13 }}>✓</Text>}
+          </View>
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Text style={styles.toggleTitle}>Mark Event as COMPLETED 🏁</Text>
+            <Text style={styles.toggleSub}>
+              Closes event registrations, logs prize distribution, and archives this event as successfully finished.
+            </Text>
+          </View>
+        </TouchableOpacity>
+
         {/* Action Button */}
         <Button
-          title="🏆 Announce & Publish Winners"
+          title={markAsCompleted ? "🏆 Announce Winners & Complete Event" : "🏆 Announce & Publish Winners"}
           onPress={handleSubmitWinners}
           loading={submitting}
           size="lg"
@@ -525,6 +546,43 @@ const styles = StyleSheet.create({
   miniPickBtnText: {
     fontSize: 10.5,
     fontWeight: '800',
+  },
+  /* Completed Toggle Card */
+  completedToggleCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1.5,
+    borderColor: '#A7F3D0',
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 8,
+    marginBottom: 14,
+  },
+  toggleCheckbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#94A3B8',
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  toggleCheckboxActive: {
+    backgroundColor: '#059669',
+    borderColor: '#059669',
+  },
+  toggleTitle: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: '#065F46',
+  },
+  toggleSub: {
+    fontSize: 11.5,
+    color: '#047857',
+    marginTop: 2,
+    lineHeight: 16,
   },
 });
 

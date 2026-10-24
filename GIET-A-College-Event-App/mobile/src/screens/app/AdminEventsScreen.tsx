@@ -28,7 +28,7 @@ import {
 
 type NavigationProp = NativeStackNavigationProp<AdminStackParamList>;
 
-const STATUS_FILTERS = ['ALL', 'PUBLISHED', 'DRAFT', 'CANCELLED'];
+const STATUS_FILTERS = ['ALL', 'PUBLISHED', 'COMPLETED', 'DRAFT', 'CANCELLED'];
 
 const AdminEventsScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
@@ -80,6 +80,7 @@ const AdminEventsScreen: React.FC = () => {
     const day = d.getDate();
     const isCancelled = item.status === 'CANCELLED';
     const isPublished = item.status === 'PUBLISHED';
+    const isCompleted = item.status === 'COMPLETED';
 
     return (
       <TouchableOpacity 
@@ -100,10 +101,10 @@ const AdminEventsScreen: React.FC = () => {
               <Text 
                 style={[
                   styles.statusTag,
-                  isPublished ? styles.publishedTag : isCancelled ? styles.cancelledTag : styles.draftTag
+                  isCompleted ? styles.completedTag : isPublished ? styles.publishedTag : isCancelled ? styles.cancelledTag : styles.draftTag
                 ]}
               >
-                {item.status}
+                {isCompleted ? '🏁 COMPLETED' : item.status}
               </Text>
               {item.category && (
                 <Text style={styles.categoryTag}>{item.category.toUpperCase()}</Text>
@@ -380,6 +381,10 @@ const styles = StyleSheet.create({
   publishedTag: {
     color: '#16A34A',
     backgroundColor: '#DCFCE7',
+  },
+  completedTag: {
+    color: '#0D9488',
+    backgroundColor: '#CCFBF1',
   },
   draftTag: {
     color: '#D97706',

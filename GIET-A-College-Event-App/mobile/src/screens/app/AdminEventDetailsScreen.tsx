@@ -109,6 +109,7 @@ const AdminEventDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const getStatusVariant = (status: string) => {
     switch (status) {
       case 'PUBLISHED': return 'success';
+      case 'COMPLETED': return 'info';
       case 'DRAFT': return 'warning';
       case 'CANCELLED': return 'danger';
       default: return 'neutral';
@@ -121,7 +122,10 @@ const AdminEventDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
       <Card style={styles.headerCard}>
         <View style={styles.titleRow}>
           <Text style={styles.title}>{event.title}</Text>
-          <Badge label={event.status} variant={getStatusVariant(event.status) as any} />
+          <Badge 
+            label={event.status === 'COMPLETED' ? '🏁 COMPLETED' : event.status} 
+            variant={getStatusVariant(event.status) as any} 
+          />
         </View>
 
         <View style={styles.metaRow}>
@@ -139,6 +143,26 @@ const AdminEventDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text style={[styles.metaText, { marginLeft: 6 }]}>{event.venue}</Text>
         </View>
       </Card>
+
+      {/* Completed Banner if Event is finished */}
+      {event.status === 'COMPLETED' && (
+        <Card style={styles.completedBannerCard}>
+          <View style={styles.completedBannerRow}>
+            <Text style={{ fontSize: 26, marginRight: 10 }}>🏁</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.completedBannerTitle}>Event Successfully Concluded</Text>
+              <Text style={styles.completedBannerSub}>
+                Prize distribution & winner announcement completed. Registrations are officially closed.
+              </Text>
+              {event.completedAt && (
+                <Text style={styles.completedBannerDate}>
+                  Concluded on: {new Date(event.completedAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </Text>
+              )}
+            </View>
+          </View>
+        </Card>
+      )}
 
       {/* Details Card */}
       <Card style={styles.sectionCard}>
@@ -321,6 +345,30 @@ const AdminEventDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             disabled={actionLoading}
             variant="success"
             size="lg"
+            style={styles.actionBtn}
+          />
+        )}
+
+        {/* Mark as Completed Action */}
+        {event.status === 'PUBLISHED' && (
+          <Button 
+            title="🏁 Mark Event as Completed"
+            onPress={() => handleStatusChange('COMPLETED', 'Marking this event as COMPLETED will close registrations, record prize distribution, and announce official conclusion to all attendees. Proceed?')}
+            disabled={actionLoading}
+            variant="primary"
+            size="lg"
+            style={[styles.actionBtn, { backgroundColor: '#059669', borderColor: '#059669' }]}
+          />
+        )}
+
+        {/* Re-open / Revert completed event */}
+        {event.status === 'COMPLETED' && (
+          <Button 
+            title="↩️ Re-open Event (Set to Published)"
+            onPress={() => handleStatusChange('PUBLISHED', 'Re-opening this event will allow registrations and check-ins again. Proceed?')}
+            disabled={actionLoading}
+            variant="secondary"
+            size="md"
             style={styles.actionBtn}
           />
         )}
@@ -538,6 +586,35 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textSecondary,
     marginTop: 2,
+  },
+  /* Completed Banner */
+  completedBannerCard: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#A7F3D0',
+    borderWidth: 1.5,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  completedBannerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  completedBannerTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#065F46',
+    marginBottom: 2,
+  },
+  completedBannerSub: {
+    fontSize: 12,
+    color: '#047857',
+    lineHeight: 16,
+  },
+  completedBannerDate: {
+    fontSize: 11,
+    color: '#059669',
+    fontWeight: '700',
+    marginTop: 4,
   },
 });
 

@@ -81,7 +81,9 @@ const EventsScreen: React.FC = () => {
       >
         <View style={styles.cardHeader}>
           <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
-          {isCancelled ? (
+          {item.status === 'COMPLETED' ? (
+            <Badge label="🏁 CONCLUDED" variant="success" size="sm" />
+          ) : isCancelled ? (
             <Badge label="CANCELLED" variant="danger" size="sm" />
           ) : item.category ? (
             <Badge label={item.category} variant="primary" size="sm" />

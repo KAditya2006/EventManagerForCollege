@@ -42,6 +42,7 @@ const AdminDashboardScreen: React.FC = () => {
     totalEvents: 0,
     publishedEvents: 0,
     draftEvents: 0,
+    completedEvents: 0,
     cancelledEvents: 0,
     totalStudents: 0,
     totalUsers: 0,
@@ -83,6 +84,7 @@ const AdminDashboardScreen: React.FC = () => {
 
   const totalCount = summary.totalEvents || events.length;
   const publishedCount = summary.publishedEvents || events.filter(e => e.status === 'PUBLISHED').length;
+  const completedCount = summary.completedEvents || events.filter(e => e.status === 'COMPLETED').length;
   const draftCount = summary.draftEvents || events.filter(e => e.status === 'DRAFT').length;
   const studentsCount = summary.totalStudents || 0;
   const cancelledCount = summary.cancelledEvents || events.filter(e => e.status === 'CANCELLED').length;
@@ -239,6 +241,21 @@ const AdminDashboardScreen: React.FC = () => {
 
             <View style={styles.kpiDivider} />
 
+            {/* Finished / Completed */}
+            <TouchableOpacity 
+              style={styles.kpiCol}
+              onPress={() => (navigation as any).navigate('Events')}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.kpiNumber, { color: '#0D9488' }]}>{completedCount}</Text>
+              <View style={styles.kpiLabelRow}>
+                <View style={[styles.kpiDot, { backgroundColor: '#0D9488' }]} />
+                <Text style={styles.kpiLabel} numberOfLines={1}>Finished 🏁</Text>
+              </View>
+            </TouchableOpacity>
+
+            <View style={styles.kpiDivider} />
+
             {/* App Users / Registered Students */}
             <TouchableOpacity 
               style={styles.kpiCol}
@@ -248,22 +265,7 @@ const AdminDashboardScreen: React.FC = () => {
               <Text style={[styles.kpiNumber, { color: '#2563EB' }]}>{studentsCount}</Text>
               <View style={styles.kpiLabelRow}>
                 <View style={[styles.kpiDot, { backgroundColor: '#2563EB' }]} />
-                <Text style={styles.kpiLabel} numberOfLines={1}>Users</Text>
-              </View>
-            </TouchableOpacity>
-
-            <View style={styles.kpiDivider} />
-
-            {/* Drafts */}
-            <TouchableOpacity 
-              style={styles.kpiCol}
-              onPress={() => (navigation as any).navigate('Events')}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.kpiNumber, { color: '#D97706' }]}>{draftCount}</Text>
-              <View style={styles.kpiLabelRow}>
-                <View style={[styles.kpiDot, { backgroundColor: '#D97706' }]} />
-                <Text style={styles.kpiLabel} numberOfLines={1}>Drafts</Text>
+                <Text style={styles.kpiLabel} numberOfLines={1}>Users 👥</Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -383,6 +385,7 @@ const AdminDashboardScreen: React.FC = () => {
           recentEvents.map((item) => {
             const isCancelled = item.status === 'CANCELLED';
             const isPublished = item.status === 'PUBLISHED';
+            const isCompleted = item.status === 'COMPLETED';
             const hasWinners = item.winners && item.winners.length > 0;
             const d = new Date(item.date);
             const monthStr = d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
@@ -412,10 +415,10 @@ const AdminDashboardScreen: React.FC = () => {
                       <Text 
                         style={[
                           styles.statusBadge,
-                          isPublished ? styles.publishedBadge : isCancelled ? styles.cancelledBadge : styles.draftBadge
+                          isCompleted ? styles.completedBadge : isPublished ? styles.publishedBadge : isCancelled ? styles.cancelledBadge : styles.draftBadge
                         ]}
                       >
-                        {item.status}
+                        {isCompleted ? '🏁 COMPLETED' : item.status}
                       </Text>
                       {item.category && (
                         <Text style={styles.categoryBadge} numberOfLines={1}>{item.category.toUpperCase()}</Text>
@@ -939,6 +942,10 @@ const styles = StyleSheet.create({
   publishedBadge: {
     color: '#16A34A',
     backgroundColor: '#DCFCE7',
+  },
+  completedBadge: {
+    color: '#0D9488',
+    backgroundColor: '#CCFBF1',
   },
   draftBadge: {
     color: '#D97706',

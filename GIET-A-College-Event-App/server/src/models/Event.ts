@@ -3,6 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 export enum EventStatus {
   DRAFT = 'DRAFT',
   PUBLISHED = 'PUBLISHED',
+  COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED'
 }
 
@@ -29,6 +30,7 @@ export interface IEvent extends Document {
   status: EventStatus;
   winners?: IWinner[];
   winnersAnnouncedAt?: Date;
+  completedAt?: Date;
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -62,6 +64,7 @@ const eventSchema = new Schema(
       },
     ],
     winnersAnnouncedAt: { type: Date },
+    completedAt: { type: Date },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   },
   {

@@ -112,6 +112,8 @@ const EventDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             <View style={styles.badgesRow}>
               {isCancelled ? (
                 <Badge label="CANCELLED" variant="danger" />
+              ) : event.status === 'COMPLETED' ? (
+                <Badge label="🏁 CONCLUDED" variant="success" />
               ) : (
                 <Badge label="PUBLISHED" variant="success" />
               )}
@@ -188,6 +190,16 @@ const EventDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             )}
           </Card>
 
+          {/* Concluded Event Notification */}
+          {event.status === 'COMPLETED' && (
+            <View style={styles.concludedBanner}>
+              <Text style={styles.concludedBannerTitle}>🏁 Event Concluded</Text>
+              <Text style={styles.concludedBannerSub}>
+                This campus event has successfully concluded. Prize distribution is complete. Check out the official winners below!
+              </Text>
+            </View>
+          )}
+
           {/* Winners Podium Card (if announced) */}
           {event.winners && event.winners.length > 0 && (
             <Card style={styles.winnersCard}>
@@ -248,6 +260,15 @@ const EventDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             disabled={true} 
             variant="danger" 
             size="lg"
+          />
+        ) : event.status === 'COMPLETED' ? (
+          <Button 
+            title="🏁 Event Completed (Registrations Closed)" 
+            onPress={() => {}} 
+            disabled={true} 
+            variant="secondary" 
+            size="lg"
+            style={{ backgroundColor: '#064E3B', borderColor: '#064E3B' }}
           />
         ) : event.isRegistered ? (
           <Button 
@@ -440,6 +461,26 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     color: '#64748B',
     marginTop: 1,
+  },
+  /* Concluded Banner */
+  concludedBanner: {
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1.5,
+    borderColor: '#A7F3D0',
+    borderRadius: radii.md,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  concludedBannerTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#065F46',
+    marginBottom: 2,
+  },
+  concludedBannerSub: {
+    fontSize: 12,
+    color: '#047857',
+    lineHeight: 17,
   },
   section: {
     marginBottom: spacing.xl,

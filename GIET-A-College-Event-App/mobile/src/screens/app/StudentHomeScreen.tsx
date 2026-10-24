@@ -150,6 +150,7 @@ const StudentHomeScreen: React.FC = () => {
     const month = d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
     const day = d.getDate();
     const isCancelled = item.status === 'CANCELLED';
+    const isCompleted = item.status === 'COMPLETED';
 
     return (
       <TouchableOpacity
@@ -169,6 +170,11 @@ const StudentHomeScreen: React.FC = () => {
             {item.category ? (
               <Text style={styles.categoryTag}>{item.category.toUpperCase()}</Text>
             ) : null}
+            {isCompleted && (
+              <Text style={[styles.cancelledTag, { color: '#047857', backgroundColor: '#ECFDF5' }]}>
+                🏁 CONCLUDED
+              </Text>
+            )}
             {isCancelled && <Text style={styles.cancelledTag}>CANCELLED</Text>}
           </View>
           

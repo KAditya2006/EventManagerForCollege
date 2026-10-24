@@ -8,6 +8,7 @@ import {
   createNotification,
   createNotificationsForEventUpdate,
   createNotificationsForEventCancellation,
+  createNotificationsForEventCompletion,
   broadcastNewEventAnnouncement,
 } from '../services/notificationService';
 import { NotificationType } from '../models/Notification';
@@ -192,6 +193,9 @@ export const updateEventStatus = async (req: Request, res: Response) => {
 
     const previousStatus = event.status;
     event.status = status;
+    if (status === EventStatus.COMPLETED && !event.completedAt) {
+      event.completedAt = new Date();
+    }
     await event.save();
 
     if (status === EventStatus.PUBLISHED && previousStatus !== EventStatus.PUBLISHED) {
@@ -202,6 +206,10 @@ export const updateEventStatus = async (req: Request, res: Response) => {
 
     if (status === EventStatus.CANCELLED && previousStatus === EventStatus.PUBLISHED) {
       await createNotificationsForEventCancellation(event._id.toString(), event.title);
+    }
+
+    if (status === EventStatus.COMPLETED && previousStatus !== EventStatus.COMPLETED) {
+      await createNotificationsForEventCompletion(event._id.toString(), event.title);
     }
 
     return res.status(200).json({ success: true, data: event });
@@ -360,7 +368,7 @@ export const getEventParticipants = async (req: Request, res: Response) => {
 export const updateEventWinners = async (req: Request, res: Response) => {
   try {
     const { eventId } = req.params;
-    const { winners } = req.body;
+    const { winners, markAsCompleted } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(eventId as string)) {
       return res.status(400).json({ success: false, error: { message: 'Invalid event ID' } });
@@ -377,6 +385,10 @@ export const updateEventWinners = async (req: Request, res: Response) => {
 
     event.winners = winners;
     event.winnersAnnouncedAt = new Date();
+    if (markAsCompleted) {
+      event.status = EventStatus.COMPLETED;
+      event.completedAt = new Date();
+    }
     await event.save();
 
     // Broadcast announcement notification to all registered students of this event
@@ -483,6 +495,7 @@ export const getAdminDashboardSummary = async (req: Request, res: Response) => {
       totalEvents,
       publishedEvents,
       draftEvents,
+      completedEvents,
       cancelledEvents,
       totalStudents,
       totalUsers,
@@ -491,6 +504,7 @@ export const getAdminDashboardSummary = async (req: Request, res: Response) => {
       Event.countDocuments(),
       Event.countDocuments({ status: EventStatus.PUBLISHED }),
       Event.countDocuments({ status: EventStatus.DRAFT }),
+      Event.countDocuments({ status: EventStatus.COMPLETED }),
       Event.countDocuments({ status: EventStatus.CANCELLED }),
       User.countDocuments({ role: UserRole.STUDENT }),
       User.countDocuments(),
@@ -503,6 +517,7 @@ export const getAdminDashboardSummary = async (req: Request, res: Response) => {
         totalEvents,
         publishedEvents,
         draftEvents,
+        completedEvents,
         cancelledEvents,
         totalStudents,
         totalUsers,

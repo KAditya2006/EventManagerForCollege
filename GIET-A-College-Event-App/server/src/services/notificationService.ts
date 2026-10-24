@@ -151,6 +151,25 @@ export const createNotificationsForEventCancellation = async (eventId: string, e
   }
 };
 
+export const createNotificationsForEventCompletion = async (eventId: string, eventTitle: string, session?: ClientSession) => {
+  const registrations = await Registration.find({ event: eventId, status: RegistrationStatus.REGISTERED })
+    .populate('student', 'email name')
+    .session(session || null);
+
+  if (registrations.length === 0) return;
+
+  const notifications = registrations.map((reg) => ({
+    recipient: reg.student,
+    type: NotificationType.EVENT_COMPLETED,
+    title: '🏁 Event Completed & Concluded',
+    message: `The event "${eventTitle}" has concluded successfully! Prize distribution is complete. View the official winners in the app.`,
+    event: eventId,
+    registration: reg._id,
+  }));
+
+  await Notification.insertMany(notifications, { session: session || null });
+};
+
 /**
  * Broadcasts a new event announcement to all registered students on GIET(A) portal.
  * Creates both in-app notification records and dispatches announcement emails.

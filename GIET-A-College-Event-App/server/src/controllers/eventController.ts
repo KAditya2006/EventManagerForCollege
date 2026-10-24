@@ -13,11 +13,11 @@ export const getPublishedEvents = async (req: Request, res: Response) => {
     if (limitNum > 100) limitNum = 100; // max limit
     const skip = (pageNum - 1) * limitNum;
 
-    // Students can only see PUBLISHED or CANCELLED (if requested) events. Never DRAFT.
-    const allowedStatuses = [EventStatus.PUBLISHED, EventStatus.CANCELLED];
+    // Students can see PUBLISHED, COMPLETED or CANCELLED (if requested) events. Never DRAFT.
+    const allowedStatuses = [EventStatus.PUBLISHED, EventStatus.COMPLETED, EventStatus.CANCELLED];
     let queryStatus = { $in: allowedStatuses } as any;
 
-    // If client specifically requests CANCELLED or PUBLISHED, filter it, but strictly within allowed bounds
+    // If client specifically requests CANCELLED, COMPLETED, or PUBLISHED, filter strictly within allowed bounds
     if (status && typeof status === 'string') {
       if (allowedStatuses.includes(status as EventStatus)) {
         queryStatus = status;

@@ -21,9 +21,10 @@ export interface Event {
   category?: string;
   capacity?: number;
   poster?: string;
-  status: 'DRAFT' | 'PUBLISHED' | 'CANCELLED';
+  status: 'DRAFT' | 'PUBLISHED' | 'COMPLETED' | 'CANCELLED';
   winners?: EventWinner[];
   winnersAnnouncedAt?: string;
+  completedAt?: string;
   registrationCount?: number;
   createdAt: string;
   updatedAt: string;
